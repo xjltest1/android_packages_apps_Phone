@@ -147,7 +147,7 @@ public class MSimMobileNetworkSubSettings extends PreferenceActivity
                 BUTTON_PREFERED_NETWORK_MODE);
 
         boolean isLteOnCdma = mPhone.getLteOnCdmaMode() == Phone.LTE_ON_CDMA_TRUE;
-        if (getResources().getBoolean(R.bool.world_phone) == true) {
+        /*if (getResources().getBoolean(R.bool.world_phone) == true) {
             // set the listener for the mButtonPreferredNetworkMode list preference so we can issue
             // change Preferred Network Mode.
             mButtonPreferredNetworkMode.setOnPreferenceChangeListener(this);
@@ -157,10 +157,10 @@ public class MSimMobileNetworkSubSettings extends PreferenceActivity
             mButtonPreferredNetworkMode.setValue(Integer.toString(settingsNetworkMode));
             mCdmaOptions = new CdmaOptions(this, prefSet, mPhone);
             mGsmUmtsOptions = new GsmUmtsOptions(this, prefSet, mSubscription);
-        } else {
-            if (!isLteOnCdma) {
+        } else {*/
+            /*if (!isLteOnCdma) {
                 prefSet.removePreference(mButtonPreferredNetworkMode);
-            }
+            }*/
             int phoneType = mPhone.getPhoneType();
             if (phoneType == Phone.PHONE_TYPE_CDMA) {
                 mCdmaOptions = new CdmaOptions(this, prefSet, mPhone);
@@ -176,11 +176,23 @@ public class MSimMobileNetworkSubSettings extends PreferenceActivity
                 }
 
             } else if (phoneType == Phone.PHONE_TYPE_GSM) {
+			    if(mSubscription == 0){
+				    mButtonPreferredNetworkMode.setOnPreferenceChangeListener(this);
+                    mButtonPreferredNetworkMode.setEntries(
+                            R.array.preferred_network_mode_choices_wcdma);
+                    mButtonPreferredNetworkMode.setEntryValues(
+                            R.array.preferred_network_mode_values_wcdma);
+                    int settingsNetworkMode = getPreferredNetworkMode();
+                    mButtonPreferredNetworkMode.setValue(Integer.toString(settingsNetworkMode));
+				}
+				else {
+				      prefSet.removePreference(mButtonPreferredNetworkMode);
+				}
                 mGsmUmtsOptions = new GsmUmtsOptions(this, prefSet, mSubscription);
             } else {
                 throw new IllegalStateException("Unexpected phone type: " + phoneType);
             }
-        }
+       // }
         ActionBar actionBar = getActionBar();
         if (actionBar != null) {
             // android.R.id.home will be triggered in onOptionsItemSelected()
