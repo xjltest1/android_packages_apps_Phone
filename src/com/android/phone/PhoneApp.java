@@ -189,6 +189,10 @@ public class PhoneApp extends Application implements AccelerometerListener.Orien
 
 	public boolean mGsmCallShow = false;
 	public boolean mCdmaCallShow = false;
+    /* add by LiXinwei for dsda 20121126 begin */
+	public boolean mSub1CallShow = false;
+	public boolean mSub2CallShow = false;
+	/* add by LiXinwei for dsda 20121126 end */
 
     //Add for status: call active but audio switch to the other mode
     public boolean mGsmCallFakeActive = false;

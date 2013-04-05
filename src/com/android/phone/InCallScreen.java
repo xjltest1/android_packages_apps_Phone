@@ -93,7 +93,7 @@ public class InCallScreen extends Activity
 
     private static final boolean DBG = true;
             //(PhoneApp.DBG_LEVEL >= 1) && (SystemProperties.getInt("ro.debuggable", 0) == 1);
-    private static final boolean VDBG = (PhoneApp.DBG_LEVEL >= 2);
+    private static final boolean VDBG = true; //(PhoneApp.DBG_LEVEL >= 2);
 
     /**
      * Intent extra used to specify whether the DTMF dialpad should be
@@ -5055,8 +5055,9 @@ public class InCallScreen extends Activity
 		 	Log.v("dsda_incallscreen",	"phonetype is " + phone.getPhoneType() + " ringcall-isIdle "  + phone.getRingingCall().getState().isIdle());
 			Log.v("dsda_incallscreen",	"sub " + i + " is " + phone.getSubscription());
 	        if (!(PhoneUtils.isPhoneIdle(phone))) {
-            	//if (phone.getPhoneType() == Phone.PHONE_TYPE_CDMA) {        	
-            	if (phone.getSubscription() == 1) {
+            	//if (phone.getPhoneType() == Phone.PHONE_TYPE_CDMA) {
+            	/* modify by LiXinwei for sim card order 20121127  */
+            	if (phone.getSubscription() == 0) {
                 	mPhoneIncalls[1] = true;
                 } else {
                     mPhoneIncalls[0] = true;

@@ -48,6 +48,7 @@ import android.provider.Settings;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
+import android.telephony.MSimTelephonyManager;
 import android.text.TextUtils;
 import android.util.EventLog;
 import android.util.Log;
@@ -395,16 +396,23 @@ public class CallNotifier extends Handler
         Call ringing = c.getCall();
         Phone phone = ringing.getPhone();
 		Log.v("dsda_callnotifier","phone type is " + phone.getPhoneType()); 
-		if(TelephonyManager.getDefault().getPhoneCount() >1 ){
-		   if(phone.getPhoneType() == Phone.PHONE_TYPE_CDMA )
+        /* modify by LiXinwei for dsda 20121126 begin */
+		if(MSimTelephonyManager.getDefault().getPhoneCount() >1 ){
+		   //if(phone.getPhoneType() == Phone.PHONE_TYPE_CDMA )
+           if(phone.getSubscription() == 0)
 		   {
 	          mApplication.mGsmCallShow = false;
 			  mApplication.mCdmaCallShow = true;
+			  mApplication.mSub1CallShow = true;
+			  mApplication.mSub2CallShow = false;
 		   }else{
 	          mApplication.mGsmCallShow = true;
 			  mApplication.mCdmaCallShow = false;
+			  mApplication.mSub1CallShow = false;
+			  mApplication.mSub2CallShow = true;
 	       }
-	   } 
+	   }
+		/* modify by LiXinwei for dsda 20121126 end */
 
         // Check for a few cases where we totally ignore incoming calls.
         if (ignoreAllIncomingCalls(phone)) {

@@ -50,6 +50,11 @@ import com.android.internal.widget.multiwaveview.GlowPadView;
 import com.android.internal.widget.multiwaveview.GlowPadView.OnTriggerListener;
 import com.android.phone.InCallUiState.InCallScreenMode;
 
+/* add by LiXinwei for dsda 20121126 begin */
+import java.util.List;
+import android.telephony.MSimTelephonyManager;
+/* add by LiXinwei for dsda 20121126 end */
+
 /**
  * In-call onscreen touch UI elements, used on some platforms.
  *
@@ -227,8 +232,47 @@ public class InCallTouchUi extends FrameLayout
         boolean showIncomingCallControls = false;
         boolean showInCallControls = false;
 
-        final Call ringingCall = cm.getFirstActiveRingingCall();
-        final Call.State fgCallState = cm.getActiveFgCallState();
+        /* merge by LiXinwei for dsda 20121126 begin */ 
+        Call ringingCall = cm.getFirstActiveRingingCall();
+        Call.State fgCallState = cm.getActiveFgCallState();
+		boolean hasGsmActive = false;
+		boolean hasGsmHold = false;
+		boolean hasGsmDialing = false;
+		boolean hasCdmaRingning = false;
+		int promptId = 0;
+		
+		//Answer C ringing call will hangup G dialing call.
+        List<Phone> phones = cm.getAllPhones();
+        for (Phone m_phone :phones) {
+           	//if((mApp.mGsmCallShow && m_phone.getPhoneType() == Phone.PHONE_TYPE_GSM)
+		   	//   || (mApp.mCdmaCallShow && m_phone.getPhoneType() == Phone.PHONE_TYPE_CDMA)) {
+			if((mApp.mGsmCallShow && m_phone.getSubscription() == 1)
+				|| (mApp.mCdmaCallShow && m_phone.getSubscription() == 0)) {
+	     		log("msub2CallShow is " + mApp.mGsmCallShow +",msub1CallShow is " + mApp.mCdmaCallShow);
+		  		ringingCall = m_phone.getRingingCall();
+		  		fgCallState = m_phone.getForegroundCall().getState();
+		  		if (m_phone.getState() == Phone.State.RINGING) {
+               	 	state = Phone.State.RINGING;
+                } else if (m_phone.getState() == Phone.State.OFFHOOK) {
+                    state = Phone.State.OFFHOOK;
+                }
+	    	}
+		    //if (m_phone.getPhoneType() == Phone.PHONE_TYPE_GSM) {
+			if (m_phone.getSubscription() == 1) {
+	        	hasGsmActive = !(m_phone.getForegroundCall().isIdle());
+		        hasGsmHold = !(m_phone.getBackgroundCall().isIdle());
+			 	hasGsmDialing = m_phone.getForegroundCall().isDialingOrAlerting();
+		    }
+		    //if (m_phone.getPhoneType() == Phone.PHONE_TYPE_CDMA) {
+			if (m_phone.getSubscription() == 0) {
+				hasCdmaRingning = m_phone.getRingingCall().isRinging();
+		    }
+		}
+
+	 	if(hasGsmDialing && hasCdmaRingning){
+	 		promptId = 1;
+	 	}
+		/* merge by LiXinwei for dsda 20121126 end */
 
         // If the FG call is dialing/alerting, we should display for that call
         // and ignore the ringing call. This case happens when the telephony

@@ -256,9 +256,11 @@ public class CallCard extends LinearLayout
         List<Phone> phones = cm.getAllPhones();
         for(Phone m_phone :phones){
            // if((mApplication.mGsmCallShow && m_phone.getPhoneType() == Phone.PHONE_TYPE_GSM)
-		  // 	   || (mApplication.mCdmaCallShow && m_phone.getPhoneType() == Phone.PHONE_TYPE_CDMA)){	   
-		     if((mApplication.mGsmCallShow && m_phone.getSubscription() == 0)
-			      || (mApplication.mCdmaCallShow && m_phone.getSubscription() == 1)){
+		  // 	   || (mApplication.mCdmaCallShow && m_phone.getPhoneType() == Phone.PHONE_TYPE_CDMA)){
+		     /* modify by LiXinwei for : the order of the sim card 20121127 begin */
+		     if((mApplication.mGsmCallShow && m_phone.getSubscription() == 1)
+			      || (mApplication.mCdmaCallShow && m_phone.getSubscription() == 0)){
+		      /* modify by LiXinwei for : the order of the sim card 20121127 end */
               fgCall = m_phone.getForegroundCall();
 			  bgCall = m_phone.getBackgroundCall();
 			  ringingCall = m_phone.getRingingCall();
