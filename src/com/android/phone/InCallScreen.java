@@ -3591,6 +3591,83 @@ public class InCallScreen extends Activity
             Phone phone = mCM.getRingingPhone();
             Call ringing = mCM.getFirstActiveRingingCall();
             int phoneType = phone.getPhoneType();
+
+	        /*add by YELLOWSTONE_dingning for  W+G dsda 20121128 begin*/
+			int phoneSub = phone.getSubscription();
+			//add for sim1 and sim2 incoming ringing call at the same time
+			final List<Call> ringingCalls = mCM.getRingingCalls();
+		   	for (Call call : ringingCalls) {
+		    	if (call.getState().isRinging()) {
+		        	int phoneSubL = call.getPhone().getSubscription();
+		            if (mApp.mSIM2CallShow==true && phoneSubL==Phone.SIM2_SUB) {
+		            	ringing = call;
+						phone = call.getPhone();
+						phoneSub = Phone.SIM2_SUB;
+				 	} else if(mApp.mSIM1CallShow==true && phoneSubL==Phone.SIM1_SUB) {
+		               	ringing = call;
+						phone = call.getPhone();
+						phoneSub= Phone.SIM1_SUB;
+				 	} else {
+				 	    //Hangup the other sim waiting call when answer ringing call
+				 	    if (call.getState() == Call.State.WAITING)
+							PhoneUtils.hangupRingingCall(call);
+				 	}
+					if (DBG) Log.d("dsda_incallscreen","internalAnswerCall----" + phoneSub);
+		    	}
+	 		}
+
+			//set mSIM1CallFakeActive / mSIM2CallFakeActive for fake active call  when answer ringCall
+		 	boolean hasSim1Active = false;
+		    boolean hasSim1Hold = false;
+		    boolean hasSim2Active = false;
+			boolean hasSim2Hold = false;
+			Call fgSim1Call = null;
+			Call bgSim1Call = null;
+			Call fgSim2Call = null;
+			Call bgSim2Call = null;
+	        List<Phone> phones = mCM.getAllPhones();
+	        for(Phone m_phone :phones) {
+				if (m_phone.getSubscription() == Phone.SIM1_SUB) {
+				   	fgSim1Call = m_phone.getForegroundCall();
+					bgSim1Call = m_phone.getBackgroundCall();
+		            hasSim1Active = !(fgSim1Call.isIdle());
+					hasSim1Hold = !(bgSim1Call.isIdle());
+			   } else if (m_phone.getSubscription() == Phone.SIM2_SUB){
+				   	fgSim2Call = m_phone.getForegroundCall();
+					bgSim2Call = m_phone.getBackgroundCall();
+		            hasSim2Active = !(fgSim2Call.isIdle());
+					hasSim2Hold = !(bgSim2Call.isIdle());
+			   }
+			}
+			//set mSIM1CallFakeActive / mSIM2CallFakeActive for fake active call when answer ringCall
+			if (phoneSub == Phone.SIM1_SUB) {
+			    if (hasSim1Active && hasSim1Hold) {
+			    	mApp.mSIM1CallFakeActive = true;
+			    }
+			    mApp.mSIM2CallFakeActive = false;
+			} else if (phoneSub == Phone.SIM2_SUB) {
+			    if (hasSim2Active && hasSim2Hold) {
+			    	mApp.mSIM2CallFakeActive = true;
+			    }
+			    mApp.mSIM1CallFakeActive = false;
+			}
+
+
+	     	//Answer ringing call will hangup the other sim dialing call.
+	     	for(Phone m_phone :phones) {
+				if( (m_phone.getSubscription() != phoneSub) &&
+					m_phone.getForegroundCall().isDialingOrAlerting()) {
+						if (DBG) Log.d("dsda_incallscreen","internalAnswerCall hangup GSM dialing call..." );
+				     	try {
+				        	m_phone.getForegroundCall().hangup();
+	               		} catch (CallStateException ex) {
+					      	Log.e("dsda_incallscreen", "Call dialing hang up: caught " + ex, ex);
+						}
+				}
+		  	}
+			/*add by YELLOWSTONE_dingning for W+G dsda 20121128 end*/
+
+
             if (phoneType == Phone.PHONE_TYPE_CDMA) {
                 if (DBG) log("internalAnswerCall: answering (CDMA)...");
                 if (mCM.hasActiveFgCall()
@@ -3632,10 +3709,13 @@ public class InCallScreen extends Activity
                 // PhoneUtils.answerCall(), *but* we also need to do
                 // something special for the "both lines in use" case.
 
-                final boolean hasActiveCall = mCM.hasActiveFgCall();
-                final boolean hasHoldingCall = mCM.hasActiveBgCall();
+		/*modify by YELLOWSTONE_dingning for W+G dsda 20121128 begin*/
+                //final boolean hasActiveCall = mCM.hasActiveFgCall();
+                //final boolean hasHoldingCall = mCM.hasActiveBgCall();
 
-                if (hasActiveCall && hasHoldingCall) {
+                //if (hasActiveCall && hasHoldingCall) {
+                if ((hasSim1Active && hasSim1Hold) || (hasSim2Active && hasSim2Hold)) {
+			    /*modify by YELLOWSTONE_dingning for W+G dsda 20121128 end*/
                     if (DBG) log("internalAnswerCall: answering (both lines in use!)...");
                     // The relatively rare case where both lines are
                     // already in use.  We "answer incoming, end ongoing"
