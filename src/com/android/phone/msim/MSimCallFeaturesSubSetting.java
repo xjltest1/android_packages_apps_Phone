@@ -1476,7 +1476,7 @@ public class MSimCallFeaturesSubSetting extends PreferenceActivity
             }
         }
 
-        if (!getResources().getBoolean(R.bool.world_phone)) {
+        //if (!getResources().getBoolean(R.bool.world_phone)) {
             Preference options = prefSet.findPreference(BUTTON_CDMA_OPTIONS);
             if (options != null)
                 prefSet.removePreference(options);
@@ -1496,7 +1496,7 @@ public class MSimCallFeaturesSubSetting extends PreferenceActivity
                 addPreferencesFromResource(R.xml.gsm_umts_call_options);
             } else {
                 throw new IllegalStateException("Unexpected phone type: " + phoneType);
-            }
+            //}
         }
 
         // create intent to bring up contact list
