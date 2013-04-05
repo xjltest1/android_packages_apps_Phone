@@ -255,8 +255,10 @@ public class CallCard extends LinearLayout
         Call bgCall = cm.getFirstActiveBgCall();
         List<Phone> phones = cm.getAllPhones();
         for(Phone m_phone :phones){
-           if((mApplication.mGsmCallShow && m_phone.getPhoneType() == Phone.PHONE_TYPE_GSM)
-		   	   || (mApplication.mCdmaCallShow && m_phone.getPhoneType() == Phone.PHONE_TYPE_CDMA)){
+           // if((mApplication.mGsmCallShow && m_phone.getPhoneType() == Phone.PHONE_TYPE_GSM)
+		  // 	   || (mApplication.mCdmaCallShow && m_phone.getPhoneType() == Phone.PHONE_TYPE_CDMA)){	   
+		     if((mApplication.mGsmCallShow && m_phone.getSubscription() == 0)
+			      || (mApplication.mCdmaCallShow && m_phone.getSubscription() == 1)){
               fgCall = m_phone.getForegroundCall();
 			  bgCall = m_phone.getBackgroundCall();
 			  ringingCall = m_phone.getRingingCall();
@@ -1405,7 +1407,9 @@ public class CallCard extends LinearLayout
         if (DBG) log("updateDisplayForConference()...");
 
         int phoneType = call.getPhone().getPhoneType();
-        if (phoneType == Phone.PHONE_TYPE_CDMA) {
+		int phone_subscription = call.getPhone().getSubscription();
+        //if (phoneType == Phone.PHONE_TYPE_CDMA) {
+		if (phone_subscription == 1) {
             // This state corresponds to both 3-Way merged call and
             // Call Waiting accepted call.
             // In this case we display the UI in a "generic" state, with
