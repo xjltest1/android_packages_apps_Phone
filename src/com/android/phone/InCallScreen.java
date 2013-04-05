@@ -1006,11 +1006,11 @@ public class InCallScreen extends Activity
         mIsDestroyed = true;
 
         mApp.setInCallScreenInstance(null);
-		mApp.mGsmCallShow = false;
-		mApp.mCdmaCallShow = false;
+		mApp.mSIM2CallShow = false;
+		mApp.mSIM1CallShow = false;
 
-	       mApp.mGsmCallFakeActive = false;
-		mApp.mCdmaCallFakeActive = false;
+	       mApp.mSIM2CallFakeActive = false;
+		mApp.mSIM1CallFakeActive = false;
 
         // Clear out the InCallScreen references in various helper objects
         // (to let them know we've been destroyed).
@@ -2816,19 +2816,19 @@ public class InCallScreen extends Activity
                 }
                 break;
 	    case R.id.sim2_button:
-		if(!mApp.mGsmCallShow){
+		if(!mApp.mSIM2CallShow){
 		Log.v("dsda_incallscreen","click gsmbutton to update incallscreen");
-                mApp.mGsmCallShow = true;
-		mApp.mCdmaCallShow = false;
+                mApp.mSIM2CallShow = true;
+		mApp.mSIM1CallShow = false;
                 mSim2Button.setBackgroundResource(R.drawable.end_call_background);				   
                 requestUpdateScreen();				   
 				}
 				break;
 			case R.id.sim1_button:
-				if(!mApp.mCdmaCallShow){
+				if(!mApp.mSIM1CallShow){
 				   Log.v("dsda_incallscreen","click cdmabutton to update incallscreen");
-                   mApp.mGsmCallShow = false;
-				   mApp.mCdmaCallShow = true;
+                   mApp.mSIM2CallShow = false;
+				   mApp.mSIM1CallShow = true;
 				   mSim2Button.setBackgroundResource(R.drawable.end_call_background);
                    requestUpdateScreen();				   
 				}
@@ -3820,8 +3820,8 @@ public class InCallScreen extends Activity
 		    CharSequence bgCallShow1 = null;
 			CharSequence bgCallShow2 = null;
 			CharSequence bgCallShow3 = null;
- 	                final boolean gsmCallFakeActive = mApp.mGsmCallFakeActive;
-			final boolean cdmaCallFakeActive = mApp.mCdmaCallFakeActive;
+            		final boolean gsmCallFakeActive = mApp.mSIM2CallFakeActive;
+			final boolean cdmaCallFakeActive = mApp.mSIM1CallFakeActive;
 		   
 			if (hasGsmActive && hasGsmHold) {
 			  	if (gsmCallFakeActive==false) {//G->G,C
@@ -3871,10 +3871,10 @@ public class InCallScreen extends Activity
 							//C->G,G,C
 					   		if (0 == item) {//G-A
 
-								mApp.mGsmCallShow = true;
-							    mApp.mCdmaCallShow = false;
-								mApp.mGsmCallFakeActive = false;
-								mApp.mCdmaCallFakeActive =true;
+								mApp.mSIM2CallShow = true;
+								mApp.mSIM1CallShow = false;
+								mApp.mSIM2CallFakeActive = false;
+								mApp.mSIM1CallFakeActive =true;
 							} else if (1 == item) {//G-H
 							    try {
 			       		        	gsmPhone.switchHoldingAndActive();
@@ -3882,10 +3882,10 @@ public class InCallScreen extends Activity
 				                    Log.e("dsda_incallscreen", "Call switchHoldingAndActive: caught " + ex, ex);
 				                } 
 			
-								mApp.mGsmCallShow = true;
-							    mApp.mCdmaCallShow = false;
-								mApp.mGsmCallFakeActive = false;
-								mApp.mCdmaCallFakeActive =true;
+								mApp.mSIM2CallShow = true;
+							    mApp.mSIM1CallShow = false;
+								mApp.mSIM2CallFakeActive = false;
+								mApp.mSIM1CallFakeActive =true;
 							} else if (2 == item) {//C
 								if (mApp.cdmaPhoneCallState.getCurrentCallState()== 
 		                  			CdmaPhoneCallState.PhoneCallState.INCOMING_THRWAY_ACTIVE) {
@@ -3895,10 +3895,10 @@ public class InCallScreen extends Activity
 						                  	Log.e("dsda_incallscreen", "Call switchHoldingAndActive: caught " + ex, ex);
 						                } 
                                         //no change
-                                        mApp.mGsmCallShow = false;
-							            mApp.mCdmaCallShow = true;
-								        mApp.mGsmCallFakeActive = true;
-								        mApp.mCdmaCallFakeActive = false;
+                                        mApp.mSIM2CallShow = false;
+							            mApp.mSIM1CallShow = true;
+								        mApp.mSIM2CallFakeActive = true;
+								        mApp.mSIM1CallFakeActive = false;
 								}
 							}
 
@@ -3921,22 +3921,22 @@ public class InCallScreen extends Activity
 					               	} catch (CallStateException ex) {
 					                                Log.e("dsda_incallscreen", "Call switchHoldingAndActive: caught " + ex, ex);
 					               	}                                 
-									mApp.mGsmCallShow = true;
-								    mApp.mCdmaCallShow = false;
-									mApp.mGsmCallFakeActive = false;
+									mApp.mSIM2CallShow = true;
+								    mApp.mSIM1CallShow = false;
+									mApp.mSIM2CallFakeActive = false;
 								} else if (1 == item) {//C
-							 	   	mApp.mGsmCallShow = false;
-								    mApp.mCdmaCallShow = true;
-								    mApp.mGsmCallFakeActive = true;
-				                    mApp.mCdmaCallFakeActive = false;
+							 	   	mApp.mSIM2CallShow = false;
+								    mApp.mSIM1CallShow = true;
+								    mApp.mSIM2CallFakeActive = true;
+				                    mApp.mSIM1CallFakeActive = false;
 								}
 						   	} else {//C->G,G
 						   		if (0 == item) {//G-A
 
-									mApp.mGsmCallShow = true;
-								        mApp.mCdmaCallShow = false;
-									mApp.mGsmCallFakeActive = false;
-									mApp.mCdmaCallFakeActive =true;
+									mApp.mSIM2CallShow = true;
+								        mApp.mSIM1CallShow = false;
+									mApp.mSIM2CallFakeActive = false;
+									mApp.mSIM1CallFakeActive =true;
 								} else if (1 == item) {//G-H
 								    try {
 				       		        	gsmPhone.switchHoldingAndActive();
@@ -3944,10 +3944,10 @@ public class InCallScreen extends Activity
 					                    Log.e("dsda_incallscreen", "Call switchHoldingAndActive: caught " + ex, ex);
 					                } 
 				
-									mApp.mGsmCallShow = true;
-								        mApp.mCdmaCallShow = false;
-									mApp.mGsmCallFakeActive = false;
-									mApp.mCdmaCallFakeActive =true;
+									mApp.mSIM2CallShow = true;
+								        mApp.mSIM1CallShow = false;
+									mApp.mSIM2CallFakeActive = false;
+									mApp.mSIM1CallFakeActive =true;
 								} 
 						   	}
 				            PhoneUtils.setAudioMode(mCM); //set audio
@@ -3964,10 +3964,10 @@ public class InCallScreen extends Activity
 		         } catch (CallStateException ex) {
 		            Log.e("dsda_incallscreen", "Call switchHoldingAndActive: caught " + ex, ex);
 		         }
-	 	        mApp.mGsmCallShow = false;
-		        mApp.mCdmaCallShow = true;
-		        mApp.mGsmCallFakeActive = false;
-                mApp.mCdmaCallFakeActive = false;
+	 	        mApp.mSIM2CallShow = false;
+		        mApp.mSIM1CallShow = true;
+		        mApp.mSIM2CallFakeActive = false;
+                mApp.mSIM1CallFakeActive = false;
 		    } else if (!hasGsmActive && hasGsmHold){//C->G
 		        if (mApp.cdmaPhoneCallState.getCurrentCallState()== 
 		                  CdmaPhoneCallState.PhoneCallState.INCOMING_THRWAY_ACTIVE) {//C->G,C
@@ -3990,10 +3990,10 @@ public class InCallScreen extends Activity
 				                    Log.e("dsda_incallscreen", "Call switchHoldingAndActive: caught " + ex, ex);
 				                } 
 			
-								mApp.mGsmCallShow = true;
-							    mApp.mCdmaCallShow = false;
-								mApp.mGsmCallFakeActive = false;
-								mApp.mCdmaCallFakeActive =true;
+								mApp.mSIM2CallShow = true;
+							    mApp.mSIM1CallShow = false;
+								mApp.mSIM2CallFakeActive = false;
+								mApp.mSIM1CallFakeActive =true;
 							} else if (1 == item) {//C
 							    try {
 									cdmaPhone.switchHoldingAndActive();
@@ -4001,10 +4001,10 @@ public class InCallScreen extends Activity
 				                  	Log.e("dsda_incallscreen", "Call switchHoldingAndActive: caught " + ex, ex);
 				                } 
                                 //no change
-                                mApp.mGsmCallShow = false;
-					            mApp.mCdmaCallShow = true;
-						        mApp.mGsmCallFakeActive = false;
-						        mApp.mCdmaCallFakeActive = false;
+                                mApp.mSIM2CallShow = false;
+					            mApp.mSIM1CallShow = true;
+						        mApp.mSIM2CallFakeActive = false;
+						        mApp.mSIM1CallFakeActive = false;
 							}
 		   					PhoneUtils.setAudioMode(mCM); //set audio
 							updateScreen();
@@ -4019,10 +4019,10 @@ public class InCallScreen extends Activity
 	                   	Log.e("dsda_incallscreen", "Call switchHoldingAndActive: caught " + ex, ex);
 	                }
 					
-				 	mApp.mGsmCallShow = true;
-			        mApp.mCdmaCallShow = false;
-				 	mApp.mGsmCallFakeActive = false;
-					mApp.mCdmaCallFakeActive =true;
+				 	mApp.mSIM2CallShow = true;
+			        mApp.mSIM1CallShow = false;
+				 	mApp.mSIM2CallFakeActive = false;
+					mApp.mSIM1CallFakeActive =true;
 		        }
 		    }
 			
@@ -5066,16 +5066,16 @@ public class InCallScreen extends Activity
 		}
 		   
 	    Log.v("dsda_incallscreen","mphoneIncalls is " +mPhoneIncalls[0] +","+mPhoneIncalls[1]);
-	    Log.v("dsda_incallscreen","gsm/cdma call show is " +mApp.mGsmCallShow +","+mApp.mCdmaCallShow);
+	    Log.v("dsda_incallscreen","gsm/cdma call show is " +mApp.mSIM2CallShow +","+mApp.mSIM1CallShow);
 		 
 	  	if (mPhoneIncalls[0]) {
 	        Log.v("dsda_incallscreen","mSim2button showimg");
             mSim2Button.setVisibility(View.VISIBLE);
-		  	if (mApp.mGsmCallShow) {
+		  	if (mApp.mSIM2CallShow) {
             	mSim2Button.setBackgroundResource(R.drawable.end_call_background);
 		  	} else if ( !mPhoneIncalls[1] ) {
-            	mApp.mGsmCallShow = true;
-				mApp.mCdmaCallShow = false;
+            	mApp.mSIM2CallShow = true;
+				mApp.mSIM1CallShow = false;
 				mSim2Button.setBackgroundResource(R.drawable.end_call_background);
 		  	} else {
                 mSim2Button.setBackgroundResource(0);
@@ -5088,11 +5088,11 @@ public class InCallScreen extends Activity
 	    if (mPhoneIncalls[1]) {
 	        Log.v("dsda_incallscreen","mSim1Button showimg");
             mSim1Button.setVisibility(View.VISIBLE);
-		 	if (mApp.mCdmaCallShow) {
+		 	if (mApp.mSIM1CallShow) {
             	mSim1Button.setBackgroundResource(R.drawable.end_call_background);
 		 	} else if ( !mPhoneIncalls[0] ){
-            	mApp.mGsmCallShow = false;
-		     	mApp.mCdmaCallShow = true;
+            	mApp.mSIM2CallShow = false;
+		     	mApp.mSIM1CallShow = true;
 		     	mSim1Button.setBackgroundResource(R.drawable.end_call_background);
 		 	} else {
                 mSim1Button.setBackgroundResource(0);
@@ -5105,8 +5105,8 @@ public class InCallScreen extends Activity
 	   //update fake active call status for single phone
 	   if ((mPhoneIncalls[0] && !mPhoneIncalls[1])
 	   	    || (!mPhoneIncalls[0] && mPhoneIncalls[1])) {
-	   		mApp.mGsmCallFakeActive = false;
-			mApp.mCdmaCallFakeActive = false;
+		mApp.mSIM2CallFakeActive = false;
+		mApp.mSIM1CallFakeActive = false;
 	   } 
 	   	   
 	}

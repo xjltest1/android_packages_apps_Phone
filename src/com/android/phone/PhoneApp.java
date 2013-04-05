@@ -187,16 +187,20 @@ public class PhoneApp extends Application implements AccelerometerListener.Orien
     static int mDockState = Intent.EXTRA_DOCK_STATE_UNDOCKED;
     static boolean sVoiceCapable = true;
 
-	public boolean mGsmCallShow = false;
-	public boolean mCdmaCallShow = false;
+    /* deleted by LiXinwei for dsda 20121128 begin */
+	//public boolean mGsmCallShow = false;
+	//public boolean mCdmaCallShow = false;
+	/* deleted by LiXinwei for dsda 20121128 end */
     /* add by LiXinwei for dsda 20121126 begin */
-	public boolean mSub1CallShow = false;
-	public boolean mSub2CallShow = false;
+	public boolean mSIM1CallShow = false;
+	public boolean mSIM2CallShow = false;
 	/* add by LiXinwei for dsda 20121126 end */
 
     //Add for status: call active but audio switch to the other mode
-    public boolean mGsmCallFakeActive = false;
-	public boolean mCdmaCallFakeActive = false;
+    /* modify by LiXinwei for dsda 20121128 begin */
+    public boolean mSIM1CallFakeActive = false;
+	public boolean mSIM2CallFakeActive = false;
+	/* modify by LiXinwei for dsda 20121128 end */
 
     // Internal PhoneApp Call state tracker
     CdmaPhoneCallState cdmaPhoneCallState;

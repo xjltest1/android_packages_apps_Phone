@@ -244,11 +244,11 @@ public class InCallTouchUi extends FrameLayout
 		//Answer C ringing call will hangup G dialing call.
         List<Phone> phones = cm.getAllPhones();
         for (Phone m_phone :phones) {
-           	//if((mApp.mGsmCallShow && m_phone.getPhoneType() == Phone.PHONE_TYPE_GSM)
-		   	//   || (mApp.mCdmaCallShow && m_phone.getPhoneType() == Phone.PHONE_TYPE_CDMA)) {
-			if((mApp.mGsmCallShow && m_phone.getSubscription() == 1)
-				|| (mApp.mCdmaCallShow && m_phone.getSubscription() == 0)) {
-	     		log("msub2CallShow is " + mApp.mGsmCallShow +",msub1CallShow is " + mApp.mCdmaCallShow);
+           	//if((mApp.mSIM2CallShow && m_phone.getPhoneType() == Phone.PHONE_TYPE_GSM)
+		   	//   || (mApp.mSIM1CallShow && m_phone.getPhoneType() == Phone.PHONE_TYPE_CDMA)) {
+			if((mApp.mSIM2CallShow && m_phone.getSubscription() == 1)
+				|| (mApp.mSIM1CallShow && m_phone.getSubscription() == 0)) {
+	     		log("msub2CallShow is " + mApp.mSIM2CallShow +",msub1CallShow is " + mApp.mSIM1CallShow);
 		  		ringingCall = m_phone.getRingingCall();
 		  		fgCallState = m_phone.getForegroundCall().getState();
 		  		if (m_phone.getState() == Phone.State.RINGING) {

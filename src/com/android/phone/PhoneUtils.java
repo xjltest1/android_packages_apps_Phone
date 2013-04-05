@@ -2992,11 +2992,11 @@ public class PhoneUtils {
 				hasCdmaHold = !(bgCdmaCall.isIdle());
 		   }
 		}
-		if(hasGsmActive && !mApp.mGsmCallFakeActive){
+		if(hasGsmActive && !mApp.mSIM2CallFakeActive){
 		    Log.v("dsda_phoneutils","set audio property as GSM_INCALL");
 	           setAudioProperty("GSM_INCALL");
 		}else if(!(mApp.cdmaPhoneCallState.getCurrentCallState()== 
-	                  CdmaPhoneCallState.PhoneCallState.IDLE) && !mApp.mCdmaCallFakeActive){
+	                  dmaPhoneCallState.PhoneCallState.IDLE) && !mApp.mCdmaCa
 	            Log.v("dsda_phoneutils","set audio property as CDMA_INCALL");          
 	            setAudioProperty("CDMA_INCALL");
 		}else{

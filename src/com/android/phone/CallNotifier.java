@@ -401,15 +401,15 @@ public class CallNotifier extends Handler
 		   //if(phone.getPhoneType() == Phone.PHONE_TYPE_CDMA )
            if(phone.getSubscription() == 0)
 		   {
-	          mApplication.mGsmCallShow = false;
-			  mApplication.mCdmaCallShow = true;
-			  mApplication.mSub1CallShow = true;
-			  mApplication.mSub2CallShow = false;
+	          mApplication.mSIM2CallShow = false;
+			  mApplication.mSIM1CallShow = true;
+			  mApplication.mSIM1CallShow = true;
+			  mApplication.mSIM2CallShow = false;
 		   }else{
-	          mApplication.mGsmCallShow = true;
-			  mApplication.mCdmaCallShow = false;
-			  mApplication.mSub1CallShow = false;
-			  mApplication.mSub2CallShow = true;
+	          mApplication.mSIM2CallShow = true;
+			  mApplication.mSIM1CallShow = false;
+			  mApplication.mSIM1CallShow = false;
+			  mApplication.mSIM2CallShow = true;
 	       }
 	   }
 		/* modify by LiXinwei for dsda 20121126 end */

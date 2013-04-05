@@ -139,8 +139,8 @@ public class InCallControlState {
 		}
 		//added for dada by hhb end	
 
-		if ((mApp.mGsmCallShow && audioProperty.equals("GSM_INCALL")) ||
-			 (mApp.mCdmaCallShow && audioProperty.equals("CDMA_INCALL"))) {
+		if ((mApp.mSIM2CallShow && audioProperty.equals("GSM_INCALL")) ||
+			 (mApp.mSIM1CallShow && audioProperty.equals("CDMA_INCALL"))) {
 			 phoneInAudio = true;
 		} else {
 		     phoneInAudio = false;
