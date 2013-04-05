@@ -33,13 +33,13 @@
               android:layout_width="match_parent"
               android:layout_height="wrap_content"
               android:gravity="center" >
-        <Button android:id="@+id/cdma_button"
+        <Button android:id="@+id/sim1_button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:visibility="gone"
                 android:text="@string/dsda_sim1" />
-        <Button android:id="@+id/gsm_button"
+        <Button android:id="@+id/sim2_button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" 

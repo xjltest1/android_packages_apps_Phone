@@ -215,8 +215,8 @@ public class InCallScreen extends Activity
     /** Main in-call UI elements. */
     private CallCard mCallCard;
    //gsm/cdma button
-    private Button mGsmButton;
-    private Button mCdmaButton;
+    private Button mSim2Button;
+    private Button mSim1Button;
 
     // UI controls:
     private InCallControlState mInCallControlState;
@@ -1328,10 +1328,10 @@ public class InCallScreen extends Activity
         // Have the WindowManager filter out touch events that are "too fat".
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_IGNORE_CHEEK_PRESSES);
 
-		mGsmButton = (Button) findViewById(R.id.gsm_button);
-		mGsmButton.setOnClickListener(this);
-		mCdmaButton = (Button) findViewById(R.id.cdma_button);	
-		mCdmaButton.setOnClickListener(this);
+		mSim2Button = (Button) findViewById(R.id.sim2_button);
+		mSim2Button.setOnClickListener(this);
+		mSim1Button = (Button) findViewById(R.id.sim1_button);	
+		mSim1Button.setOnClickListener(this);
         // Initialize the CallCard.
         if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
             mCallCard = (CallCard) findViewById(R.id.mSimCallCard);
@@ -2815,21 +2815,21 @@ public class InCallScreen extends Activity
                     internalSwapCalls();
                 }
                 break;
-	    case R.id.gsm_button:
+	    case R.id.sim2_button:
 		if(!mApp.mGsmCallShow){
 		Log.v("dsda_incallscreen","click gsmbutton to update incallscreen");
                 mApp.mGsmCallShow = true;
 		mApp.mCdmaCallShow = false;
-                mGsmButton.setBackgroundResource(R.drawable.end_call_background);				   
+                mSim2Button.setBackgroundResource(R.drawable.end_call_background);				   
                 requestUpdateScreen();				   
 				}
 				break;
-			case R.id.cdma_button:
+			case R.id.sim1_button:
 				if(!mApp.mCdmaCallShow){
 				   Log.v("dsda_incallscreen","click cdmabutton to update incallscreen");
                    mApp.mGsmCallShow = false;
 				   mApp.mCdmaCallShow = true;
-				   mGsmButton.setBackgroundResource(R.drawable.end_call_background);
+				   mSim2Button.setBackgroundResource(R.drawable.end_call_background);
                    requestUpdateScreen();				   
 				}
 				break;
@@ -5068,37 +5068,37 @@ public class InCallScreen extends Activity
 	    Log.v("dsda_incallscreen","gsm/cdma call show is " +mApp.mGsmCallShow +","+mApp.mCdmaCallShow);
 		 
 	  	if (mPhoneIncalls[0]) {
-	        Log.v("dsda_incallscreen","mGsmbutton showimg");
-            mGsmButton.setVisibility(View.VISIBLE);
+	        Log.v("dsda_incallscreen","mSim2button showimg");
+            mSim2Button.setVisibility(View.VISIBLE);
 		  	if (mApp.mGsmCallShow) {
-            	mGsmButton.setBackgroundResource(R.drawable.end_call_background);
+            	mSim2Button.setBackgroundResource(R.drawable.end_call_background);
 		  	} else if ( !mPhoneIncalls[1] ) {
             	mApp.mGsmCallShow = true;
 				mApp.mCdmaCallShow = false;
-				mGsmButton.setBackgroundResource(R.drawable.end_call_background);
+				mSim2Button.setBackgroundResource(R.drawable.end_call_background);
 		  	} else {
-                mGsmButton.setBackgroundResource(0);
+                mSim2Button.setBackgroundResource(0);
 		  	}
 	    } else {
-	        Log.v("dsda_incallscreen","mGsmbutton gone");
-            mGsmButton.setVisibility(View.GONE);
+	        Log.v("dsda_incallscreen","mSim2button gone");
+            mSim2Button.setVisibility(View.GONE);
 	    }
 		
 	    if (mPhoneIncalls[1]) {
-	        Log.v("dsda_incallscreen","mcdmabutton showimg");
-            mCdmaButton.setVisibility(View.VISIBLE);
+	        Log.v("dsda_incallscreen","mSim1Button showimg");
+            mSim1Button.setVisibility(View.VISIBLE);
 		 	if (mApp.mCdmaCallShow) {
-            	mCdmaButton.setBackgroundResource(R.drawable.end_call_background);
+            	mSim1Button.setBackgroundResource(R.drawable.end_call_background);
 		 	} else if ( !mPhoneIncalls[0] ){
             	mApp.mGsmCallShow = false;
 		     	mApp.mCdmaCallShow = true;
-		     	mCdmaButton.setBackgroundResource(R.drawable.end_call_background);
+		     	mSim1Button.setBackgroundResource(R.drawable.end_call_background);
 		 	} else {
-                mCdmaButton.setBackgroundResource(0);
+                mSim1Button.setBackgroundResource(0);
 		 	}
 	   } else {
-	       	Log.v("dsda_incallscreen","mcdmabutton gone");
-            mCdmaButton.setVisibility(View.GONE);
+	       	Log.v("dsda_incallscreen","mSim1Button gone");
+            mSim1Button.setVisibility(View.GONE);
 	   }	
 
 	   //update fake active call status for single phone
