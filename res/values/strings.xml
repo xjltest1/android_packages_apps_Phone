@@ -1643,15 +1643,15 @@
     <string name="dsda_dial_hangup_current_call">You need to hangup the current call before dialing a new call</string>
     <string name="dsda_dial_hangup_cdma_or_merge">You need to hangup or merge cdma calls before dialing a new call</string>
 
-    <string name="dsda_cdma">CDMA</string>
-    <string name="dsda_gsm">GSM</string>
-    <string name="dsda_cdma_conference">CDMA Conference Call</string>
-    <string name="dsda_gsm_conference">GSM Conference Call</string>
+    <string name="dsda_sim1">SIM 1</string>
+    <string name="dsda_sim2">SIM 2</string>
+    <string name="dsda_sim1_conference">SIM1 Conference Call</string>
+    <string name="dsda_sim2_conference">SIM2 Conference Call</string>
     <string name="dsda_swap">Swap to:</string>
-    <string name="dsda_cdma_call">CDMA Calls</string>
-    <string name="dsda_cdma_audioswitch">Notice: Audio has switched to GSM Call</string>
-    <string name="dsda_gsm_audioswitch">Notice: Audio has switched to CDMA Call</string>
-    <string name="dsda_cdma_hold_call">CDMA Hold Call</string>
+    <string name="dsda_sim1_call">SIM1 Calls</string>
+    <string name="dsda_sim1_audioswitch">Notice: Audio has switched to SIM2 Call</string>
+    <string name="dsda_sim2_audioswitch">Notice: Audio has switched to SIM1 Call</string>
+    <string name="dsda_sim1_hold_call">SIM1 Hold Call</string>
     <string name="dsda_cdma_max_call">Max CDMA call limitation 2 calls!</string>
     <string name="dsda_gsm_max_call">Max GSM call limitation 6 calls!</string>
 

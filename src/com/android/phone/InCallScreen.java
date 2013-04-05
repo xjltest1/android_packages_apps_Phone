@@ -586,8 +586,9 @@ public class InCallScreen extends Activity
 
 	// Get the active phone pbject.
         Phone phone = mCM.getPhoneInCall();
+		if (DBG) log("multi sim enabled? " + MSimTelephonyManager.getDefault().isMultiSimEnabled());
 
-		if(TelephonyManager.getDefault().isMultiSimEnabled()){
+		if(MSimTelephonyManager.getDefault().isMultiSimEnabled()){
 		   Log.v("dsda_incallScreen","show cdma/gsm Button");
            showDsdaButton();
 		}
@@ -2407,8 +2408,9 @@ public class InCallScreen extends Activity
             if (DBG) log("- updateScreen: not the foreground Activity! Bailing out...");
             return;
         }
+		if (DBG) log("multi sim enabled? " + MSimTelephonyManager.getDefault().isMultiSimEnabled());
 
-		if(TelephonyManager.getDefault().isMultiSimEnabled()){
+		if(MSimTelephonyManager.getDefault().isMultiSimEnabled()){
 		   Log.v("dsda_incallScreen","show cdma/gsm Button");
            showDsdaButton();
 		}
@@ -3824,36 +3826,36 @@ public class InCallScreen extends Activity
 			if (hasGsmActive && hasGsmHold) {
 			  	if (gsmCallFakeActive==false) {//G->G,C
 				  	if (bgGsmConnectionsSize>1) {
-	                	bgCallShow1 = getString(R.string.dsda_gsm_conference);
+	                	bgCallShow1 = getString(R.string.dsda_sim2_conference);
 				  	} else {
-	                 	bgCallShow1= getString(R.string.dsda_gsm) + " " + bgGsmConnections.get(0).getAddress();
+	                 	bgCallShow1= getString(R.string.dsda_sim2) + " " + bgGsmConnections.get(0).getAddress();
 				  	}
 
 				  	if (fgCdmaConnectionsSize>1) {
 				  		if ( mApp.cdmaPhoneCallState.getCurrentCallState()==
 	                    			CdmaPhoneCallState.PhoneCallState.CONF_CALL) {
-	                    	bgCallShow2= getString(R.string.dsda_cdma_conference);
+	                    	bgCallShow2= getString(R.string.dsda_sim1_conference);
 	                   	} else {
-	                        bgCallShow2= getString(R.string.dsda_cdma_call);
+	                        bgCallShow2= getString(R.string.dsda_sim1_call);
 	                    }
 				  	} else {
-	                 		bgCallShow2 = getString(R.string.dsda_cdma) + " " + fgCdmaConnections.get(0).getAddress();
+	                 		bgCallShow2 = getString(R.string.dsda_sim1) + " " + fgCdmaConnections.get(0).getAddress();
 				  	}
 			  	} else {//C->G,G or C->G,G,C
 				  	if (fgGsmConnectionsSize>1) {
-	                	bgCallShow1 = getString(R.string.dsda_gsm_conference);
+	                	bgCallShow1 = getString(R.string.dsda_sim2_conference);
 				  	} else {
-	                 	bgCallShow1= getString(R.string.dsda_gsm) + " " + fgGsmConnections.get(0).getAddress();
+	                 	bgCallShow1= getString(R.string.dsda_sim2) + " " + fgGsmConnections.get(0).getAddress();
 				  	}
 
 				  	if (bgGsmConnectionsSize>1) {
-	                 	bgCallShow2= getString(R.string.dsda_gsm_conference);
+	                 	bgCallShow2= getString(R.string.dsda_sim2_conference);
 				  	} else {
-	                 	bgCallShow2 = getString(R.string.dsda_gsm) + " " + bgGsmConnections.get(0).getAddress();
+	                 	bgCallShow2 = getString(R.string.dsda_sim2) + " " + bgGsmConnections.get(0).getAddress();
 				  	}
 					if (mApp.cdmaPhoneCallState.getCurrentCallState()== 
 		                  CdmaPhoneCallState.PhoneCallState.INCOMING_THRWAY_ACTIVE) {//C->G,G,C
-		                bgCallShow3 = getString(R.string.dsda_cdma_hold_call);         
+		                bgCallShow3 = getString(R.string.dsda_sim1_hold_call);
 		            } 
 			  	}
 
@@ -3970,11 +3972,11 @@ public class InCallScreen extends Activity
 		        if (mApp.cdmaPhoneCallState.getCurrentCallState()== 
 		                  CdmaPhoneCallState.PhoneCallState.INCOMING_THRWAY_ACTIVE) {//C->G,C
 		          	if (bgGsmConnectionsSize>1) {
-	                	bgCallShow1= getString(R.string.dsda_gsm_conference);
+	                	bgCallShow1= getString(R.string.dsda_sim2_conference);
 				  	} else{
-		        		bgCallShow1 = getString(R.string.dsda_gsm) + " " + bgGsmConnections.get(0).getAddress();
+		        		bgCallShow1 = getString(R.string.dsda_sim2) + " " + bgGsmConnections.get(0).getAddress();
 				  	}
-		            bgCallShow2 = getString(R.string.dsda_cdma_hold_call);
+		            bgCallShow2 = getString(R.string.dsda_sim1_hold_call);
 			   	    final CharSequence[] items = {bgCallShow1,bgCallShow2};
 			   		AlertDialog.Builder builder = new AlertDialog.Builder(this);
 			  		builder.setTitle(getString(R.string.dsda_swap));
@@ -5043,15 +5045,18 @@ public class InCallScreen extends Activity
 	private void showDsdaButton() {
 		log("showDsdaButton()...");
         Phone phone = null;		 
-	    int mPhoneCount = TelephonyManager.getDefault().getPhoneCount();
+	    int mPhoneCount = MSimTelephonyManager.getDefault().getPhoneCount();
+		log("showDsdaButton phone count: " + mPhoneCount);
 	    boolean mPhoneIncalls[] = {false,false};// [gsmPhone,CdmaPhone]
 	    if(mPhoneCount < 2 ) return ;
 
         for (int i = 0; i < mPhoneCount; i++) {
         	phone = MSimPhoneFactory.getPhone(i);
 		 	Log.v("dsda_incallscreen",	"phonetype is " + phone.getPhoneType() + " ringcall-isIdle "  + phone.getRingingCall().getState().isIdle());
+			Log.v("dsda_incallscreen",	"sub " + i + " is " + phone.getSubscription());
 	        if (!(PhoneUtils.isPhoneIdle(phone))) {
-            	if (phone.getPhoneType() == Phone.PHONE_TYPE_CDMA) {
+            	//if (phone.getPhoneType() == Phone.PHONE_TYPE_CDMA) {        	
+            	if (phone.getSubscription() == 1) {
                 	mPhoneIncalls[1] = true;
                 } else {
                     mPhoneIncalls[0] = true;

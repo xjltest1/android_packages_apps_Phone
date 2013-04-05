@@ -38,13 +38,13 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:visibility="gone"
-                android:text="@string/dsda_cdma" />
+                android:text="@string/dsda_sim1" />
         <Button android:id="@+id/gsm_button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" 
                 android:visibility="gone"                
-                android:text="@string/dsda_gsm" />
+                android:text="@string/dsda_sim2" />
     </LinearLayout>
 
 <FrameLayout android:layout_width="match_parent"
