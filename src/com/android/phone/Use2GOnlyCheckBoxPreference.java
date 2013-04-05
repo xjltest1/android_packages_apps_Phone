@@ -48,14 +48,20 @@ public class Use2GOnlyCheckBoxPreference extends CheckBoxPreference {
                 mHandler.obtainMessage(MyHandler.MESSAGE_GET_PREFERRED_NETWORK_TYPE));
     }
 
+    private void setPreferredNetworkMode(int nwMode) {
+        android.provider.Settings.Secure.putIntAtIndex(
+                    mPhone.getContext().getContentResolver(),
+                    android.provider.Settings.Secure.PREFERRED_NETWORK_MODE,
+                    mPhone.getSubscription(), nwMode);
+    }
+
     @Override
     protected void  onClick() {
         super.onClick();
 
         int networkType = isChecked() ? Phone.NT_MODE_GSM_ONLY : Phone.NT_MODE_WCDMA_PREF;
         Log.i(LOG_TAG, "set preferred network type="+networkType);
-        android.provider.Settings.Secure.putInt(mPhone.getContext().getContentResolver(),
-                android.provider.Settings.Secure.PREFERRED_NETWORK_MODE, networkType);
+        setPreferredNetworkMode(networkType);
         mPhone.setPreferredNetworkType(networkType, mHandler
                 .obtainMessage(MyHandler.MESSAGE_SET_PREFERRED_NETWORK_TYPE));
    }
@@ -89,8 +95,7 @@ public class Use2GOnlyCheckBoxPreference extends CheckBoxPreference {
                 }
                 Log.i(LOG_TAG, "get preferred network type="+type);
                 setChecked(type == Phone.NT_MODE_GSM_ONLY);
-                android.provider.Settings.Secure.putInt(mPhone.getContext().getContentResolver(),
-                        android.provider.Settings.Secure.PREFERRED_NETWORK_MODE, type);
+                setPreferredNetworkMode(type);
             } else {
                 // Weird state, disable the setting
                 Log.i(LOG_TAG, "get preferred network type, exception="+ar.exception);
