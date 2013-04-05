@@ -70,6 +70,11 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 
+import com.android.internal.telephony.msim.MSimPhoneFactory;
+import com.android.internal.telephony.Phone;
+import android.telephony.TelephonyManager;
+
+
 /**
  * Misc utilities for the Phone app.
  */
@@ -90,6 +95,10 @@ public class PhoneUtils {
     static final int CALL_STATUS_DIALED = 0;  // The number was successfully dialed
     static final int CALL_STATUS_DIALED_MMI = 1;  // The specified number was an MMI code
     static final int CALL_STATUS_FAILED = 2;  // The call failed
+
+    static final int CALL_PROMPT_0 = 0;
+	static final int CALL_PROMPT_1 = 1; //During one phone is incall,the other phone originates or accepts call
+	static final int CALL_PROMPT_2 = 2;//During all phones are incall at the same time; one phone originates or accepts call
 
     // State of the Phone's audio modes
     // Each state can move to the other states, but within the state only certain
@@ -2768,6 +2777,241 @@ public class PhoneUtils {
         boolean ringing = app.getRinger().isRinging();
         Log.d(LOG_TAG, "  - Ringer state: " + ringing);
     }
+
+    static int isShowPrompt(int subscription){
+		
+		 boolean sub_active[] = {false,false};
+		 boolean sub_hold[] = {false,false};
+		 boolean sub_incall[] = {false,false};
+		 int sub[] = {99,99};
+         Phone phone = null;
+		 Log.v("dsda","isShowPrompt,subscription is " + subscription);
+		 int mPhoneCount = TelephonyManager.getDefault().getPhoneCount();
+        //checking if any of the phones are in use
+        for (int i = 0; i < mPhoneCount; i++) {
+             phone = MSimPhoneFactory.getPhone(i);
+             sub_incall[i] = isInCall(phone);
+             if ((phone != null) && (sub_incall[i])) {
+			 	
+                 sub[i] = phone.getSubscription(); 
+				 
+				 Call fgCall = phone.getForegroundCall();
+				 Call bgCall = phone.getBackgroundCall();
+				 
+				 if(fgCall.getState().isActive() | bgCall.getState().isActive()){
+                    sub_active[i] = true;
+				 }else if(fgCall.getState().isHolding() | bgCall.getState().isHolding()){
+                    sub_hold[i] = true ;
+				 }
+             }
+        }
+		if(sub_incall[0] && sub_active[0] 
+			   && sub_incall[1] && sub_active[1]){
+			
+           Log.v("dsda","dual simcards are all in active call");
+		   return CALL_PROMPT_2;
+		}
+		if(sub_active[0] && sub[0] != subscription ){
+			if(sub_hold[0]){
+				Log.v("dsda","show prompt end sub 0 active/hold call");
+				return CALL_PROMPT_2;
+			}else{
+			    Log.v("dsda","show prompt hold/end sub 0 active call");
+			}
+			return CALL_PROMPT_1;
+		}else if((sub_active[1] && sub[1] != subscription )){
+			if(sub_hold[1]){
+				Log.v("dsda","show prompt end sub 1 active/hold call");
+				return CALL_PROMPT_2;
+			}else{
+			    Log.v("dsda","show prompt hold/end sub 1 active call");
+			}
+			return CALL_PROMPT_1;           
+           
+		}else{
+             return CALL_PROMPT_0;
+	    }
+}
+   /*call'state is in call except IDLE,DISCONNECTED and DISCONNECTING*/
+   static boolean isInCall(Phone phone) {
+        if (phone != null) {
+            if ((phone.getForegroundCall().getState().isAlive()) ||
+                   (phone.getBackgroundCall().getState().isAlive()) ||
+                   (phone.getRingingCall().getState().isAlive()))
+                return true;
+        }
+        return false;
+    }
+ 
+   /*All calls's state == IDLE*/
+   static boolean isPhoneIdle(Phone phone) {
+        if (phone != null) {
+            if ((phone.getForegroundCall().getState().isIdle()) &&
+                   (phone.getBackgroundCall().getState().isIdle()) &&
+                   (phone.getRingingCall().getState().isIdle()))
+                return true;
+        }
+        return false;
+    }   
+
+   static boolean isPhonesInCall(){
+   
+	    Log.v("dsda","isPhonesInCall()");
+		boolean sub_incall[] = {false,false};
+        Phone phone = null;		 
+		int mPhoneCount = TelephonyManager.getDefault().getPhoneCount();
+		
+		if(mPhoneCount < 2 ) return false;
+		
+        for (int i = 0; i < mPhoneCount; i++) {
+             phone = MSimPhoneFactory.getPhone(i);
+             sub_incall[i] = isInCall(phone);
+        }
+		
+		if(sub_incall[0] && sub_incall[1]){			
+           Log.v("dsda","dual simcards are all incall");
+		   return true;
+		}else{
+           return false;
+		}		
+  }
+   
+   static Call getfgCall(){
+   	    Log.v("dsda","phoneUtils.java,getfgCall()");
+		CallManager cm = PhoneApp.getInstance().mCM;
+        Call fgCall = cm.getActiveFgCall();
+		
+        List<Call> callList = cm.getForegroundCalls();
+		Log.v("dsda","fgcallist size is "+ callList.size());
+		Call gsmCall = null;
+		Call cdmaCall = null;
+		boolean m_gsmcall = false;
+		boolean m_cdmacall = false;
+		long gsmcall_duringTime = 0;
+		long cdmacall_duringTime = 0;
+		if(callList.size() > 1){
+			for (Call m_call : callList){
+				String  number = "NULL";
+				if(m_call.getEarliestConnection() != null)
+				    number = m_call.getEarliestConnection().getAddress();
+				Log.v("dsda_phoneutils", "number is " + number);
+                if(m_call.getPhone().getPhoneType() == Phone.PHONE_TYPE_GSM ){
+					Log.v("dsda_phoneutils","gsmPhone call");
+                    m_gsmcall = true;
+					gsmCall = m_call;
+				}else {
+				    Log.v("dsda_phoneutils","cdmaphone call");
+                    m_cdmacall = true;
+					cdmaCall = m_call;				
+				}
+			}
+
+			if(m_gsmcall && m_cdmacall && gsmCall != null && cdmaCall != null){
+				if((gsmCall.getState().isActive() | gsmCall.getState().isDialing())
+					   && cdmaCall.getState().isActive()){
+				   Log.v("dsda_phoneutils","set fg or bg");
+			   	   Log.v("dsda_phoneutils","fgcall is gsmcall");
+                   fgCall = gsmCall;
+				}
+			}
+		}  
+		return fgCall;
+   }
+
+   static Call getbgCall(){
+   	    Log.v("dsda_phoneutils","phoneUtils.java,getbgCall()");
+        CallManager cm = PhoneApp.getInstance().mCM;		
+        Call bgCall = cm.getFirstActiveBgCall();
+		
+        List<Call> callList = cm.getForegroundCalls();
+		Log.v("dsda_phoneutils","fgcallist size is "+ callList.size());
+		Call gsmCall = null;
+		Call cdmaCall = null;
+		boolean m_gsmcall = false;
+		boolean m_cdmacall = false;
+		if(callList.size() > 1){
+			for (Call m_call : callList){
+                if(m_call.getPhone().getPhoneType() == Phone.PHONE_TYPE_GSM ){
+					Log.v("dsda_phoneutils","gsmPhone call");
+                    m_gsmcall = true;
+					gsmCall = m_call;
+				}else {
+				    Log.v("dsda_phoneutils","cdmaphone call");
+                    m_cdmacall = true;
+					cdmaCall = m_call;				
+				}
+			}
+
+			if(m_gsmcall && m_cdmacall && gsmCall != null && cdmaCall != null){
+				if((gsmCall.getState().isActive() | gsmCall.getState().isDialing())
+					   && cdmaCall.getState().isActive()){
+				   Log.v("dsda_phoneutils","set fg or bg");
+			   	   Log.v("dsda_phoneutils","bgcall is cdmacall");
+                   bgCall = cdmaCall;
+				}
+			}
+		}
+		return bgCall;		
+   }
+
+
+   static void setAudioProperty(String type){
+      SystemProperties.set("gsm.dsda.audio.type",type);
+	  String value = SystemProperties.get("gsm.dsda.audio.type", "IDLE_INCALL");
+	  Log.v("dsda","type is " + type +",value is " + value);
+	  
+   }
+   static String getAudioProperty(){
+      return SystemProperties.get("gsm.dsda.audio.type","");
+   }
+
+   static void processSetAudioMode(CallManager mCM){
+
+		PhoneApp mApp = PhoneApp.getInstance();
+		boolean hasGsmActive = false;
+		boolean hasGsmHold = false;
+		boolean hasCdmaActive = false;
+		boolean hasCdmaHold = false;
+		Call fgGsmCall = null;
+		Call bgGsmCall = null;
+		Call fgCdmaCall = null;
+		Call bgCdmaCall = null;
+		
+	    List<Phone> phones = mCM.getAllPhones();
+	    for(Phone m_phone :phones){
+		   if(m_phone.getPhoneType() == Phone.PHONE_TYPE_GSM ||
+		   	  m_phone.getPhoneType() == Phone.PHONE_TYPE_SIP){
+			   	fgGsmCall = m_phone.getForegroundCall();
+				bgGsmCall = m_phone.getBackgroundCall();
+	            hasGsmActive = !(fgGsmCall.isIdle());
+				hasGsmHold = !(bgGsmCall.isIdle());
+		   }else {
+			   	fgCdmaCall = m_phone.getForegroundCall();
+				bgCdmaCall = m_phone.getBackgroundCall();
+	            hasCdmaActive = !(fgCdmaCall.isIdle());
+				hasCdmaHold = !(bgCdmaCall.isIdle());
+		   }
+		}
+		if(hasGsmActive && !mApp.mGsmCallFakeActive){
+		    Log.v("dsda_phoneutils","set audio property as GSM_INCALL");
+	           setAudioProperty("GSM_INCALL");
+		}else if(!(mApp.cdmaPhoneCallState.getCurrentCallState()== 
+	                  CdmaPhoneCallState.PhoneCallState.IDLE) && !mApp.mCdmaCallFakeActive){
+	            Log.v("dsda_phoneutils","set audio property as CDMA_INCALL");          
+	            setAudioProperty("CDMA_INCALL");
+		}else{
+		    Log.v("dsda_phoneutils","set audio property as GSM_INCALL");
+            if(hasCdmaActive && !hasGsmActive){
+                setAudioProperty("CDMA_INCALL");
+            }else{
+	           setAudioProperty("GSM_INCALL");
+            }
+		}		
+        if(!hasCdmaActive && !hasCdmaHold && !hasGsmActive && !hasGsmHold){
+            Log.e("dsda_phoneutils","set audio property as IDLE_INCALL");
+            setAudioProperty("IDLE_INCALL");
+        }        
+   }
 
     private static void log(String msg) {
         Log.d(LOG_TAG, msg);

@@ -51,6 +51,7 @@ import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.EventLog;
 import android.util.Log;
+import android.content.pm.PackageManager;
 
 /**
  * Phone app module that listens for phone state changes and various other
@@ -393,6 +394,17 @@ public class CallNotifier extends Handler
         log("onNewRingingConnection(): state = " + mCM.getState() + ", conn = { " + c + " }");
         Call ringing = c.getCall();
         Phone phone = ringing.getPhone();
+		Log.v("dsda_callnotifier","phone type is " + phone.getPhoneType()); 
+		if(TelephonyManager.getDefault().getPhoneCount() >1 ){
+		   if(phone.getPhoneType() == Phone.PHONE_TYPE_CDMA )
+		   {
+	          mApplication.mGsmCallShow = false;
+			  mApplication.mCdmaCallShow = true;
+		   }else{
+	          mApplication.mGsmCallShow = true;
+			  mApplication.mCdmaCallShow = false;
+	       }
+	   } 
 
         // Check for a few cases where we totally ignore incoming calls.
         if (ignoreAllIncomingCalls(phone)) {

@@ -1632,4 +1632,31 @@
 
 <string name="vm_voicemail_title">VoiceMail</string>
 <string name="count_down_timer">Second:</string>
+
+<!-- dsda. -->
+    <string name="dsda_prompt_txt">End or hold the current call ?</string>
+    <string name="dsda_prompt_end">END</string>
+    <string name="dsda_prompt_hold">HOLD</string>
+    <string name="dsda_null"></string> 
+    <string name="dsda_hangup_cdma_calls">Accepting call will hangup all cdma calls</string> 
+    <string name="dsda_incoming_hangup_current_call">Accepting call will hangup the current call</string> 
+    <string name="dsda_dial_hangup_current_call">You need to hangup the current call before dialing a new call</string>
+    <string name="dsda_dial_hangup_cdma_or_merge">You need to hangup or merge cdma calls before dialing a new call</string>
+
+    <string name="dsda_cdma">CDMA</string>
+    <string name="dsda_gsm">GSM</string>
+    <string name="dsda_cdma_conference">CDMA Conference Call</string>
+    <string name="dsda_gsm_conference">GSM Conference Call</string>
+    <string name="dsda_swap">Swap to:</string>
+    <string name="dsda_cdma_call">CDMA Calls</string>
+    <string name="dsda_cdma_audioswitch">Notice: Audio has switched to GSM Call</string>
+    <string name="dsda_gsm_audioswitch">Notice: Audio has switched to CDMA Call</string>
+    <string name="dsda_cdma_hold_call">CDMA Hold Call</string>
+    <string name="dsda_cdma_max_call">Max CDMA call limitation 2 calls!</string>
+    <string name="dsda_gsm_max_call">Max GSM call limitation 6 calls!</string>
+
+<string name="title_dialog_duration">Duration</string>
+    <string name="duration_format"><xliff:g id="minutes" example="42">%s</xliff:g> mins <xliff:g id="seconds" example="28">%s</xliff:g> secs</string>
+    
+    <!-- dsda. -->
 </resources>

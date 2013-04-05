@@ -44,6 +44,7 @@ import android.os.PowerManager;
 import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.telephony.MSimTelephonyManager;
+import android.telephony.TelephonyManager;
 import android.telephony.ServiceState;
 import android.text.TextUtils;
 import android.text.method.DialerKeyListener;
@@ -61,6 +62,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.Button;
 
 import com.android.internal.telephony.Call;
 import com.android.internal.telephony.CallManager;
@@ -74,6 +76,10 @@ import com.android.phone.InCallUiState.InCallScreenMode;
 import com.android.phone.OtaUtils.CdmaOtaScreenState;
 
 import java.util.List;
+import com.android.internal.telephony.msim.MSimPhoneFactory;
+import com.android.internal.telephony.CallStateException;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import static com.android.internal.telephony.MSimConstants.SUBSCRIPTION_KEY;
 
@@ -85,8 +91,8 @@ public class InCallScreen extends Activity
         implements View.OnClickListener {
     private static final String LOG_TAG = "InCallScreen";
 
-    private static final boolean DBG =
-            (PhoneApp.DBG_LEVEL >= 1) && (SystemProperties.getInt("ro.debuggable", 0) == 1);
+    private static final boolean DBG = true;
+            //(PhoneApp.DBG_LEVEL >= 1) && (SystemProperties.getInt("ro.debuggable", 0) == 1);
     private static final boolean VDBG = (PhoneApp.DBG_LEVEL >= 2);
 
     /**
@@ -208,9 +214,16 @@ public class InCallScreen extends Activity
 
     /** Main in-call UI elements. */
     private CallCard mCallCard;
+   //gsm/cdma button
+    private Button mGsmButton;
+    private Button mCdmaButton;
 
     // UI controls:
     private InCallControlState mInCallControlState;
+
+    private InCallControlState mGsmInCallControlState;
+    private InCallControlState mCdmaInCallControlState;
+
     private InCallTouchUi mInCallTouchUi;
     protected RespondViaSmsManager mRespondViaSmsManager;  // see internalRespondViaSms()
     private ManageConferenceUtils mManageConferenceUtils;
@@ -231,6 +244,7 @@ public class InCallScreen extends Activity
     protected AlertDialog mGenericErrorDialog;
     private AlertDialog mSuppServiceFailureDialog;
     private AlertDialog mWaitPromptDialog;
+    private AlertDialog mDurationDialog;
     private AlertDialog mWildPromptDialog;
     private AlertDialog mCallLostDialog;
     private AlertDialog mPausePromptDialog;
@@ -572,6 +586,11 @@ public class InCallScreen extends Activity
 
 	// Get the active phone pbject.
         Phone phone = mCM.getPhoneInCall();
+
+		if(TelephonyManager.getDefault().isMultiSimEnabled()){
+		   Log.v("dsda_incallScreen","show cdma/gsm Button");
+           showDsdaButton();
+		}
 
         final InCallUiState inCallUiState = mApp.inCallUiState;
         if (VDBG) inCallUiState.dumpState();
@@ -986,6 +1005,11 @@ public class InCallScreen extends Activity
         mIsDestroyed = true;
 
         mApp.setInCallScreenInstance(null);
+		mApp.mGsmCallShow = false;
+		mApp.mCdmaCallShow = false;
+
+	       mApp.mGsmCallFakeActive = false;
+		mApp.mCdmaCallFakeActive = false;
 
         // Clear out the InCallScreen references in various helper objects
         // (to let them know we've been destroyed).
@@ -1298,18 +1322,22 @@ public class InCallScreen extends Activity
     }
 
     protected void initInCallScreen() {
-        if (VDBG) log("initInCallScreen()...");
+        if (DBG) log("initInCallScreen()...");
 
         // Have the WindowManager filter out touch events that are "too fat".
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_IGNORE_CHEEK_PRESSES);
 
+		mGsmButton = (Button) findViewById(R.id.gsm_button);
+		mGsmButton.setOnClickListener(this);
+		mCdmaButton = (Button) findViewById(R.id.cdma_button);	
+		mCdmaButton.setOnClickListener(this);
         // Initialize the CallCard.
         if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
             mCallCard = (CallCard) findViewById(R.id.mSimCallCard);
         } else {
             mCallCard = (CallCard) findViewById(R.id.callCard);
         }
-        if (VDBG) log("  - mCallCard = " + mCallCard);
+        if (DBG) log("  - mCallCard = " + mCallCard);
         mCallCard.setInCallScreenInstance(this);
 
         // Initialize the onscreen UI elements.
@@ -1317,6 +1345,9 @@ public class InCallScreen extends Activity
 
         // Helper class to keep track of enabledness/state of UI controls
         mInCallControlState = new InCallControlState(this, mCM);
+
+        mGsmInCallControlState = new InCallControlState(this,mCM, Phone.PHONE_TYPE_GSM);
+        mCdmaInCallControlState = new InCallControlState(this,mCM, Phone.PHONE_TYPE_CDMA);
 
         // Helper class to run the "Manage conference" UI
         mManageConferenceUtils = new ManageConferenceUtils(this, mCM);
@@ -2377,6 +2408,11 @@ public class InCallScreen extends Activity
             return;
         }
 
+		if(TelephonyManager.getDefault().isMultiSimEnabled()){
+		   Log.v("dsda_incallScreen","show cdma/gsm Button");
+           showDsdaButton();
+		}
+
         if (inCallScreenMode == InCallScreenMode.OTA_NORMAL) {
             if (DBG) log("- updateScreen: OTA call state NORMAL (NOT updating in-call UI)...");
             mCallCard.setVisibility(View.GONE);
@@ -2777,6 +2813,24 @@ public class InCallScreen extends Activity
                     internalSwapCalls();
                 }
                 break;
+	    case R.id.gsm_button:
+		if(!mApp.mGsmCallShow){
+		Log.v("dsda_incallscreen","click gsmbutton to update incallscreen");
+                mApp.mGsmCallShow = true;
+		mApp.mCdmaCallShow = false;
+                mGsmButton.setBackgroundResource(R.drawable.end_call_background);				   
+                requestUpdateScreen();				   
+				}
+				break;
+			case R.id.cdma_button:
+				if(!mApp.mCdmaCallShow){
+				   Log.v("dsda_incallscreen","click cdmabutton to update incallscreen");
+                   mApp.mGsmCallShow = false;
+				   mApp.mCdmaCallShow = true;
+				   mGsmButton.setBackgroundResource(R.drawable.end_call_background);
+                   requestUpdateScreen();				   
+				}
+				break;
 
             default:
                 // Presumably one of the OTASP-specific buttons managed by
@@ -3308,6 +3362,11 @@ public class InCallScreen extends Activity
             mExitingECMDialog.dismiss();  // safe even if already dismissed
             mExitingECMDialog = null;
         }
+        if (mDurationDialog != null) {
+            if (DBG) log("- DISMISSING mDurationDialog.");
+            mDurationDialog.dismiss();
+            mDurationDialog = null;
+        }
 
         // When the user dismisses the "Exiting ECM" dialog, we clear out
         // the pending call status code field (since we're done with this
@@ -3721,6 +3780,255 @@ public class InCallScreen extends Activity
         // to lose any previous digits from the current call; see the TODO
         // comment on DTMFTwelvKeyDialer.clearDigits() for more info.)
         mDialer.clearDigits();
+
+		boolean hasGsmActive = false;
+		boolean hasGsmHold = false;
+		boolean hasCdmaActive = false;
+		Call fgGsmCall = null;
+		Call bgGsmCall = null;
+		Call fgCdmaCall = null;		
+        List<Phone> phones = mCM.getAllPhones();
+
+        for (Phone m_phone :phones) {
+		   if (m_phone.getPhoneType() == Phone.PHONE_TYPE_GSM ||
+		   	  m_phone.getPhoneType() == Phone.PHONE_TYPE_SIP) {
+			   	fgGsmCall = m_phone.getForegroundCall();
+				bgGsmCall = m_phone.getBackgroundCall();
+	            hasGsmActive = !(fgGsmCall.isIdle());
+				hasGsmHold = !(bgGsmCall.isIdle());
+		   } else {
+			 	fgCdmaCall = m_phone.getForegroundCall();
+	            hasCdmaActive = !(fgCdmaCall.isIdle());
+		   }
+		}
+
+	
+		if (DBG) Log.d("dsda_incallscreen", "  - internalSwapCalls()  ---dn--hasGsmActive=" + hasGsmActive + 
+			 			  "  hasGsmHold=" + hasGsmHold + "  hasCdmaActive="  + hasCdmaActive );
+		
+        if ((hasGsmActive | hasGsmHold)&& hasCdmaActive) {
+			final Phone gsmPhone = fgGsmCall.getPhone();
+		  	final Phone cdmaPhone = fgCdmaCall.getPhone();
+	        List<Connection> fgGsmConnections = fgGsmCall.getConnections();
+	   	    List<Connection> bgGsmConnections = bgGsmCall.getConnections();
+		    List<Connection> fgCdmaConnections = fgCdmaCall.getConnections();
+		    final int fgGsmConnectionsSize = fgGsmConnections.size();
+		    final int bgGsmConnectionsSize = bgGsmConnections.size();
+		    final int fgCdmaConnectionsSize = fgCdmaConnections.size();
+		    CharSequence bgCallShow1 = null;
+			CharSequence bgCallShow2 = null;
+			CharSequence bgCallShow3 = null;
+ 	                final boolean gsmCallFakeActive = mApp.mGsmCallFakeActive;
+			final boolean cdmaCallFakeActive = mApp.mCdmaCallFakeActive;
+		   
+			if (hasGsmActive && hasGsmHold) {
+			  	if (gsmCallFakeActive==false) {//G->G,C
+				  	if (bgGsmConnectionsSize>1) {
+	                	bgCallShow1 = getString(R.string.dsda_gsm_conference);
+				  	} else {
+	                 	bgCallShow1= getString(R.string.dsda_gsm) + " " + bgGsmConnections.get(0).getAddress();
+				  	}
+
+				  	if (fgCdmaConnectionsSize>1) {
+				  		if ( mApp.cdmaPhoneCallState.getCurrentCallState()==
+	                    			CdmaPhoneCallState.PhoneCallState.CONF_CALL) {
+	                    	bgCallShow2= getString(R.string.dsda_cdma_conference);
+	                   	} else {
+	                        bgCallShow2= getString(R.string.dsda_cdma_call);
+	                    }
+				  	} else {
+	                 		bgCallShow2 = getString(R.string.dsda_cdma) + " " + fgCdmaConnections.get(0).getAddress();
+				  	}
+			  	} else {//C->G,G or C->G,G,C
+				  	if (fgGsmConnectionsSize>1) {
+	                	bgCallShow1 = getString(R.string.dsda_gsm_conference);
+				  	} else {
+	                 	bgCallShow1= getString(R.string.dsda_gsm) + " " + fgGsmConnections.get(0).getAddress();
+				  	}
+
+				  	if (bgGsmConnectionsSize>1) {
+	                 	bgCallShow2= getString(R.string.dsda_gsm_conference);
+				  	} else {
+	                 	bgCallShow2 = getString(R.string.dsda_gsm) + " " + bgGsmConnections.get(0).getAddress();
+				  	}
+					if (mApp.cdmaPhoneCallState.getCurrentCallState()== 
+		                  CdmaPhoneCallState.PhoneCallState.INCOMING_THRWAY_ACTIVE) {//C->G,G,C
+		                bgCallShow3 = getString(R.string.dsda_cdma_hold_call);         
+		            } 
+			  	}
+
+				if (gsmCallFakeActive==true && 
+					mApp.cdmaPhoneCallState.getCurrentCallState()== 
+		                  CdmaPhoneCallState.PhoneCallState.INCOMING_THRWAY_ACTIVE) {
+				   	final CharSequence[] items = {bgCallShow1,bgCallShow2,bgCallShow3};
+				   	AlertDialog.Builder builder = new AlertDialog.Builder(this);
+				  	builder.setTitle(getString(R.string.dsda_swap));
+				  	builder.setNegativeButton(android.R.string.cancel, null);
+				  	builder.setItems(items, new DialogInterface.OnClickListener() {
+						public void onClick(DialogInterface dialog,int item) {
+							//C->G,G,C
+					   		if (0 == item) {//G-A
+
+								mApp.mGsmCallShow = true;
+							    mApp.mCdmaCallShow = false;
+								mApp.mGsmCallFakeActive = false;
+								mApp.mCdmaCallFakeActive =true;
+							} else if (1 == item) {//G-H
+							    try {
+			       		        	gsmPhone.switchHoldingAndActive();
+				                } catch (CallStateException ex) {
+				                    Log.e("dsda_incallscreen", "Call switchHoldingAndActive: caught " + ex, ex);
+				                } 
+			
+								mApp.mGsmCallShow = true;
+							    mApp.mCdmaCallShow = false;
+								mApp.mGsmCallFakeActive = false;
+								mApp.mCdmaCallFakeActive =true;
+							} else if (2 == item) {//C
+								if (mApp.cdmaPhoneCallState.getCurrentCallState()== 
+		                  			CdmaPhoneCallState.PhoneCallState.INCOMING_THRWAY_ACTIVE) {
+			                  			try {
+											cdmaPhone.switchHoldingAndActive();
+						                } catch (CallStateException ex) {
+						                  	Log.e("dsda_incallscreen", "Call switchHoldingAndActive: caught " + ex, ex);
+						                } 
+                                        //no change
+                                        mApp.mGsmCallShow = false;
+							            mApp.mCdmaCallShow = true;
+								        mApp.mGsmCallFakeActive = true;
+								        mApp.mCdmaCallFakeActive = false;
+								}
+							}
+
+				            PhoneUtils.setAudioMode(mCM); //set audio						   	
+						   	updateScreen();
+					   	}                                      
+				  	}); 
+				  	builder.create().show();
+		        } else {
+				   	final CharSequence[] items = {bgCallShow1,bgCallShow2};
+				   	AlertDialog.Builder builder = new AlertDialog.Builder(this);
+				  	builder.setTitle(getString(R.string.dsda_swap));
+				  	builder.setNegativeButton(android.R.string.cancel, null);
+				  	builder.setItems(items, new DialogInterface.OnClickListener() {
+						public void onClick(DialogInterface dialog,int item) {
+							if (gsmCallFakeActive==false) {//G->G,C
+				                if (0 == item) {//G
+								 	try {
+				       		           	gsmPhone.switchHoldingAndActive();
+					               	} catch (CallStateException ex) {
+					                                Log.e("dsda_incallscreen", "Call switchHoldingAndActive: caught " + ex, ex);
+					               	}                                 
+									mApp.mGsmCallShow = true;
+								    mApp.mCdmaCallShow = false;
+									mApp.mGsmCallFakeActive = false;
+								} else if (1 == item) {//C
+							 	   	mApp.mGsmCallShow = false;
+								    mApp.mCdmaCallShow = true;
+								    mApp.mGsmCallFakeActive = true;
+				                    mApp.mCdmaCallFakeActive = false;
+								}
+						   	} else {//C->G,G
+						   		if (0 == item) {//G-A
+
+									mApp.mGsmCallShow = true;
+								        mApp.mCdmaCallShow = false;
+									mApp.mGsmCallFakeActive = false;
+									mApp.mCdmaCallFakeActive =true;
+								} else if (1 == item) {//G-H
+								    try {
+				       		        	gsmPhone.switchHoldingAndActive();
+					                } catch (CallStateException ex) {
+					                    Log.e("dsda_incallscreen", "Call switchHoldingAndActive: caught " + ex, ex);
+					                } 
+				
+									mApp.mGsmCallShow = true;
+								        mApp.mCdmaCallShow = false;
+									mApp.mGsmCallFakeActive = false;
+									mApp.mCdmaCallFakeActive =true;
+								} 
+						   	}
+				            PhoneUtils.setAudioMode(mCM); //set audio
+				            PhoneUtils.restoreMuteState();
+						   	updateScreen();
+					   	}                                      
+				  	}); 
+				  	builder.create().show();
+			        }
+			  
+			} else if(hasGsmActive && !hasGsmHold ) {//G->C	
+		    	try {
+		   			fgGsmCall.getPhone().switchHoldingAndActive();
+		         } catch (CallStateException ex) {
+		            Log.e("dsda_incallscreen", "Call switchHoldingAndActive: caught " + ex, ex);
+		         }
+	 	        mApp.mGsmCallShow = false;
+		        mApp.mCdmaCallShow = true;
+		        mApp.mGsmCallFakeActive = false;
+                mApp.mCdmaCallFakeActive = false;
+		    } else if (!hasGsmActive && hasGsmHold){//C->G
+		        if (mApp.cdmaPhoneCallState.getCurrentCallState()== 
+		                  CdmaPhoneCallState.PhoneCallState.INCOMING_THRWAY_ACTIVE) {//C->G,C
+		          	if (bgGsmConnectionsSize>1) {
+	                	bgCallShow1= getString(R.string.dsda_gsm_conference);
+				  	} else{
+		        		bgCallShow1 = getString(R.string.dsda_gsm) + " " + bgGsmConnections.get(0).getAddress();
+				  	}
+		            bgCallShow2 = getString(R.string.dsda_cdma_hold_call);
+			   	    final CharSequence[] items = {bgCallShow1,bgCallShow2};
+			   		AlertDialog.Builder builder = new AlertDialog.Builder(this);
+			  		builder.setTitle(getString(R.string.dsda_swap));
+			  		builder.setNegativeButton(android.R.string.cancel, null);
+			  		builder.setItems(items, new DialogInterface.OnClickListener() {
+						public void onClick(DialogInterface dialog,int item) {
+							if (0 == item) {//G
+							    try {
+			       		        	gsmPhone.switchHoldingAndActive();
+				                } catch (CallStateException ex) {
+				                    Log.e("dsda_incallscreen", "Call switchHoldingAndActive: caught " + ex, ex);
+				                } 
+			
+								mApp.mGsmCallShow = true;
+							    mApp.mCdmaCallShow = false;
+								mApp.mGsmCallFakeActive = false;
+								mApp.mCdmaCallFakeActive =true;
+							} else if (1 == item) {//C
+							    try {
+									cdmaPhone.switchHoldingAndActive();
+				                } catch (CallStateException ex) {
+				                  	Log.e("dsda_incallscreen", "Call switchHoldingAndActive: caught " + ex, ex);
+				                } 
+                                //no change
+                                mApp.mGsmCallShow = false;
+					            mApp.mCdmaCallShow = true;
+						        mApp.mGsmCallFakeActive = false;
+						        mApp.mCdmaCallFakeActive = false;
+							}
+		   					PhoneUtils.setAudioMode(mCM); //set audio
+							updateScreen();
+					   	}                                      
+				  	});
+					builder.create().show();
+		                  
+		        } else {//C->G
+			        try {
+			        	gsmPhone.switchHoldingAndActive();
+	                } catch (CallStateException ex) {
+	                   	Log.e("dsda_incallscreen", "Call switchHoldingAndActive: caught " + ex, ex);
+	                }
+					
+				 	mApp.mGsmCallShow = true;
+			        mApp.mCdmaCallShow = false;
+				 	mApp.mGsmCallFakeActive = false;
+					mApp.mCdmaCallFakeActive =true;
+		        }
+		    }
+			
+		   	PhoneUtils.setAudioMode(mCM); //set audio
+	      	updateScreen();
+		   	return;
+		}
+
 
         // Swap the fg and bg calls.
         // In the future we may provides some way for user to choose among
@@ -4504,6 +4812,20 @@ public class InCallScreen extends Activity
         return mInCallControlState;
     }
 
+    public InCallControlState getUpdatedInCallControlState(int phoneType) {
+        if (VDBG) log("getUpdatedInCallControlState()...");
+		if(Phone.PHONE_TYPE_GSM == phoneType){
+          mGsmInCallControlState.update();
+		  return mGsmInCallControlState;
+		}else if(Phone.PHONE_TYPE_CDMA == phoneType){
+          mCdmaInCallControlState.update();
+		  return mCdmaInCallControlState;
+		}
+        mInCallControlState.update();
+        return mInCallControlState;
+    }
+
+
     public void resetInCallScreenMode() {
         if (DBG) log("resetInCallScreenMode: setting mode to UNDEFINED...");
         setInCallScreenMode(InCallScreenMode.UNDEFINED);
@@ -4678,9 +5000,154 @@ public class InCallScreen extends Activity
                 (PhoneApp.getInstance().getKeyguardManager().inKeyguardRestrictedInputMode()));
     }
 
+	private void showPromptDialog_1(){
+       AlertDialog.Builder builder = new AlertDialog.Builder(this); 
+	   builder.setTitle(getString(R.string.dsda_prompt_txt));
+	   builder.setPositiveButton(getString(R.string.dsda_prompt_end), new DialogInterface.OnClickListener(){
+                                           public void onClick(DialogInterface dialog,int whichButton){
+                                              Log.v("dsda","end active call");
+											  PhoneUtils.hangup(PhoneApp.getInstance().mCM.getActiveFgCall());
+											  internalAnswerCall();
+										   }
+	                                        });
+	   builder.setNegativeButton(getString(R.string.dsda_prompt_hold), new DialogInterface.OnClickListener(){
+                                           public void onClick(DialogInterface dialog,int whichButton){
+                                              Log.v("dsda","hold active call");
+											  internalAnswerCall();
+										   }
+	                                        });	 
+	   builder.create().show();
+	   
+	}
+	private void showPromptDialog_2(){
+       AlertDialog.Builder builder = new AlertDialog.Builder(this); 
+	   builder.setTitle("end active or end hold ?"/*getString(R.string.dsda_prompt_txt)*/);
+	   builder.setPositiveButton("active"/*getString(R.string.dsda_prompt_end)*/, new DialogInterface.OnClickListener(){
+                                           public void onClick(DialogInterface dialog,int whichButton){
+                                              Log.v("dsda","end active call");
+											  PhoneUtils.hangup(PhoneUtils.getfgCall());
+											  internalAnswerCall();
+										   }
+	                                        });
+	   builder.setNegativeButton("hold"/*getString(R.string.dsda_prompt_hold)*/, new DialogInterface.OnClickListener(){
+                                           public void onClick(DialogInterface dialog,int whichButton){
+                                              Log.v("dsda","end hold call");
+											  PhoneUtils.hangup(PhoneUtils.getbgCall());
+											  internalAnswerCall();
+										   }
+	                                        });	 
+	   builder.create().show();
+	   
+	}	
+
+	private void showDsdaButton() {
+		log("showDsdaButton()...");
+        Phone phone = null;		 
+	    int mPhoneCount = TelephonyManager.getDefault().getPhoneCount();
+	    boolean mPhoneIncalls[] = {false,false};// [gsmPhone,CdmaPhone]
+	    if(mPhoneCount < 2 ) return ;
+
+        for (int i = 0; i < mPhoneCount; i++) {
+        	phone = MSimPhoneFactory.getPhone(i);
+		 	Log.v("dsda_incallscreen",	"phonetype is " + phone.getPhoneType() + " ringcall-isIdle "  + phone.getRingingCall().getState().isIdle());
+	        if (!(PhoneUtils.isPhoneIdle(phone))) {
+            	if (phone.getPhoneType() == Phone.PHONE_TYPE_CDMA) {
+                	mPhoneIncalls[1] = true;
+                } else {
+                    mPhoneIncalls[0] = true;
+		     	}
+		 	}       
+		}
+		   
+	    Log.v("dsda_incallscreen","mphoneIncalls is " +mPhoneIncalls[0] +","+mPhoneIncalls[1]);
+	    Log.v("dsda_incallscreen","gsm/cdma call show is " +mApp.mGsmCallShow +","+mApp.mCdmaCallShow);
+		 
+	  	if (mPhoneIncalls[0]) {
+	        Log.v("dsda_incallscreen","mGsmbutton showimg");
+            mGsmButton.setVisibility(View.VISIBLE);
+		  	if (mApp.mGsmCallShow) {
+            	mGsmButton.setBackgroundResource(R.drawable.end_call_background);
+		  	} else if ( !mPhoneIncalls[1] ) {
+            	mApp.mGsmCallShow = true;
+				mApp.mCdmaCallShow = false;
+				mGsmButton.setBackgroundResource(R.drawable.end_call_background);
+		  	} else {
+                mGsmButton.setBackgroundResource(0);
+		  	}
+	    } else {
+	        Log.v("dsda_incallscreen","mGsmbutton gone");
+            mGsmButton.setVisibility(View.GONE);
+	    }
+		
+	    if (mPhoneIncalls[1]) {
+	        Log.v("dsda_incallscreen","mcdmabutton showimg");
+            mCdmaButton.setVisibility(View.VISIBLE);
+		 	if (mApp.mCdmaCallShow) {
+            	mCdmaButton.setBackgroundResource(R.drawable.end_call_background);
+		 	} else if ( !mPhoneIncalls[0] ){
+            	mApp.mGsmCallShow = false;
+		     	mApp.mCdmaCallShow = true;
+		     	mCdmaButton.setBackgroundResource(R.drawable.end_call_background);
+		 	} else {
+                mCdmaButton.setBackgroundResource(0);
+		 	}
+	   } else {
+	       	Log.v("dsda_incallscreen","mcdmabutton gone");
+            mCdmaButton.setVisibility(View.GONE);
+	   }	
+
+	   //update fake active call status for single phone
+	   if ((mPhoneIncalls[0] && !mPhoneIncalls[1])
+	   	    || (!mPhoneIncalls[0] && mPhoneIncalls[1])) {
+	   		mApp.mGsmCallFakeActive = false;
+			mApp.mCdmaCallFakeActive = false;
+	   } 
+	   	   
+	}
 
     private void log(String msg) {
         Log.d(LOG_TAG, msg);
+    }
+
+   void showDurationDialog(long duration) {
+        if (mDurationDialog != null) {
+            if (DBG)
+                log("- DISMISSING mDurationDialog.");
+            mDurationDialog.dismiss(); // safe even if already dismissed
+            mDurationDialog = null;
+        }
+
+        duration = duration / 1000;
+        long minutes = 0;
+        long seconds = 0;
+
+        if (duration >= 60) {
+            minutes = duration / 60;
+            duration -= minutes * 60;
+        }
+        seconds = duration;
+
+        if(duration > 0 || minutes > 0){
+            mDurationDialog = new AlertDialog.Builder(this)
+                    .setTitle(R.string.title_dialog_duration)
+                    .setMessage(getString(R.string.duration_format, minutes, seconds))
+                    .create();
+
+            mDurationDialog.show();
+            
+            mHandler.postDelayed(new Runnable() {
+    			
+    			@Override
+    			public void run() {
+    				if(mDurationDialog != null)
+    				{
+    					mDurationDialog.dismiss();
+    					mDurationDialog = null;
+    					
+    				}
+    			}
+    		}, 3000);
+        }
     }
 
     /**

@@ -25,6 +25,8 @@ import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.CallManager;
 import com.android.internal.telephony.TelephonyCapabilities;
 
+import java.util.List;
+
 /**
  * Helper class to keep track of enabledness, visibility, and "on/off"
  * or "checked" state of the various controls available in the in-call
@@ -45,6 +47,8 @@ public class InCallControlState {
 
     private InCallScreen mInCallScreen;
     private CallManager mCM;
+	private int mPhoneType = 0;
+	private PhoneApp mApp;
 
     //
     // Our "public API": Boolean flags to indicate the state and/or
@@ -73,6 +77,8 @@ public class InCallControlState {
     public boolean dialpadEnabled;
     public boolean dialpadVisible;
     //
+	public boolean phoneInAudio;
+    //
     /** True if the "Hold" function is *ever* available on this device */
     public boolean supportsHold;
     /** True if the call is currently on hold */
@@ -90,18 +96,55 @@ public class InCallControlState {
         mInCallScreen = inCallScreen;
         mCM = cm;
     }
+    public InCallControlState(InCallScreen inCallScreen, CallManager cm, int phonetype) {
+        if (DBG) log("InCallControlState constructor...");
+        mInCallScreen = inCallScreen;
+        mCM = cm;
+		mPhoneType = phonetype;
+		mApp = PhoneApp.getInstance();
+    }
 
     /**
      * Updates all our public boolean flags based on the current state of
      * the Phone.
      */
     public void update() {
-        final Phone.State state = mCM.getState();  // coarse-grained voice call state
-        final Call fgCall = mCM.getActiveFgCall();
-        final Call.State fgCallState = fgCall.getState();
-        final boolean hasActiveForegroundCall = (fgCallState == Call.State.ACTIVE);
-        final boolean hasHoldingCall = mCM.hasActiveBgCall();
+         Phone.State state = mCM.getState();  // coarse-grained voice call state
+         Call fgCall = mCM.getActiveFgCall();
+		 Call bgCall = mCM.getFirstActiveBgCall();
+         Call.State fgCallState = fgCall.getState();
+         boolean hasActiveForegroundCall = (fgCallState == Call.State.ACTIVE);
+         boolean hasHoldingCall = mCM.hasActiveBgCall();
+         Phone inCallPhone = mCM.getPhoneInCall();
+		 
+		//add for dsda by hhb start
+        String audioProperty = PhoneUtils.getAudioProperty();
+        List<Phone> phones = mCM.getAllPhones();
+        for(Phone m_phone :phones){
+           if(mPhoneType == m_phone.getPhoneType()){
+              fgCall = m_phone.getForegroundCall();
+              fgCallState = fgCall.getState();
+			  hasActiveForegroundCall = (fgCallState == Call.State.ACTIVE);
+			  bgCall = m_phone.getBackgroundCall();
+			  hasHoldingCall = (bgCall.getState() == Call.State.HOLDING);
+			  if (m_phone.getState() == Phone.State.RINGING) {
+                 state = Phone.State.RINGING;
+              } else if (m_phone.getState() == Phone.State.OFFHOOK) {
+                 state = Phone.State.OFFHOOK;
+              }
+			  if(PhoneUtils.isInCall(m_phone)){
+                 inCallPhone = m_phone;
+			  }
+		   }
+		}
+		//added for dada by hhb end	
 
+		if ((mApp.mGsmCallShow && audioProperty.equals("GSM_INCALL")) ||
+			 (mApp.mCdmaCallShow && audioProperty.equals("CDMA_INCALL"))) {
+			 phoneInAudio = true;
+		} else {
+		     phoneInAudio = false;
+		}
         // Manage conference:
         if (TelephonyCapabilities.supportsConferenceCallManagement(fgCall.getPhone())) {
             // This item is visible only if the foreground call is a
@@ -159,6 +202,10 @@ public class InCallControlState {
             canMute = false;
             muteIndicatorOn = false;
         } else {
+            if (!phoneInAudio) {
+            	canMute = false;
+            	muteIndicatorOn = false;
+			} else {
             canMute = hasActiveForegroundCall;
             muteIndicatorOn = PhoneUtils.getMute();
         }
@@ -172,7 +219,7 @@ public class InCallControlState {
         dialpadVisible = mInCallScreen.isDialerOpened();
 
         // "Hold:
-        if (TelephonyCapabilities.supportsHoldAndUnhold(mCM.getPhoneInCall())) {
+        if (TelephonyCapabilities.supportsHoldAndUnhold(inCallPhone)) {
             // This phone has the concept of explicit "Hold" and "Unhold" actions.
             supportsHold = true;
             // "On hold" means that there's a holding call and
@@ -189,7 +236,7 @@ public class InCallControlState {
             // for background holding calls may do.
             //
             // If the foreground call is ACTIVE,  we should turn on "swap" button instead.
-            final Call bgCall = mCM.getFirstActiveBgCall();
+            //final Call bgCall = mCM.getFirstActiveBgCall();
             if (bgCall != null &&
                     TelephonyCapabilities.supportsHoldAndUnhold(bgCall.getPhone())) {
                 supportsHold = true;
@@ -203,6 +250,9 @@ public class InCallControlState {
             canHold = false;
         }
 
+	if(PhoneUtils.isPhonesInCall()){
+           canHold = false;
+		}
         if (DBG) dumpState();
     }
 

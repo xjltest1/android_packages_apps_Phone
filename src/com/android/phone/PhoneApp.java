@@ -55,6 +55,7 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
 
+import android.telephony.TelephonyManager;
 import com.android.internal.telephony.Call;
 import com.android.internal.telephony.CallManager;
 import com.android.internal.telephony.IccCard;
@@ -185,6 +186,13 @@ public class PhoneApp extends Application implements AccelerometerListener.Orien
     boolean mShowBluetoothIndication = false;
     static int mDockState = Intent.EXTRA_DOCK_STATE_UNDOCKED;
     static boolean sVoiceCapable = true;
+
+	public boolean mGsmCallShow = false;
+	public boolean mCdmaCallShow = false;
+
+    //Add for status: call active but audio switch to the other mode
+    public boolean mGsmCallFakeActive = false;
+	public boolean mCdmaCallFakeActive = false;
 
     // Internal PhoneApp Call state tracker
     CdmaPhoneCallState cdmaPhoneCallState;
@@ -2074,5 +2082,15 @@ public class PhoneApp extends Application implements AccelerometerListener.Orien
 
     Intent createInCallIntent(int subscription) {
         return PhoneApp.createInCallIntent();
+    }
+
+    Phone getDefaultPhone() {
+        return this.phone;
+    }
+
+    void showDuration(long duration) {
+        if(mInCallScreen != null){
+            mInCallScreen.showDurationDialog(duration);
+        }
     }
 }

@@ -16,9 +16,11 @@
 -->
 
 <!-- In-call Phone UI; see InCallScreen.java. -->
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/incall_screen"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"    android:orientation="vertical"
+>
     <!-- The "Call Card", which displays info about the currently
          active phone call(s) on the device.  See call_card.xml.
 
@@ -27,13 +29,38 @@
          we manually adjust its bottom margin in CallCard.updateCallInfoLayout()
          to make sure it doesn't overlap with the onscreen buttons from
          incall_touch_ui.xml. -->
+<LinearLayout android:id="@+id/buttons"
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:gravity="center" >
+        <Button android:id="@+id/cdma_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                android:text="@string/dsda_cdma" />
+        <Button android:id="@+id/gsm_button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1" 
+                android:visibility="gone"                
+                android:text="@string/dsda_gsm" />
+    </LinearLayout>
+
+<FrameLayout android:layout_width="match_parent"
+                 android:layout_height="wrap_content" >
+
+    <RelativeLayout android:id="@+id/inCallPanel"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    >
     <include
         layout="@layout/call_card_multi_sim"
         android:id="@+id/mSimCallCard"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         />
-
+</RelativeLayout>
     <!-- In-call onscreen touch controls; see InCallTouchUi.java.
          This widget contains the cluster of buttons shown at the bottom
          of the in-call screen, and also the DTMF dialpad (which, when
@@ -65,3 +92,4 @@
               />
 
 </FrameLayout>
+</LinearLayout>

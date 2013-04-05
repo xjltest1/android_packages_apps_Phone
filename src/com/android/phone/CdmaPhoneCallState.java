@@ -36,6 +36,7 @@ package com.android.phone;
  *        when the user originates another call we need to remember this state to update the menu
  *        items accordingly. FW currently does not differentiate this condition hence PhoneApp
  *        needs to maintain it.
+ * INCOMING_THRWAY_ACTIVE - When user receive incoming call when already on a call
  * CONF_CALL - When the user merges two calls or on accepting the Call waiting call.
  *        This is required cause even though a call might be generic but that does not mean it is
  *        in conference. We can take the same example mention in the SINGLE_ACTIVE state.
@@ -55,6 +56,7 @@ package com.android.phone;
             IDLE,
             SINGLE_ACTIVE,
             THRWAY_ACTIVE,
+	    INCOMING_THRWAY_ACTIVE,
             CONF_CALL
         }
 

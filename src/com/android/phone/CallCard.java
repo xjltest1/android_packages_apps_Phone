@@ -253,6 +253,20 @@ public class CallCard extends LinearLayout
         Call ringingCall = cm.getFirstActiveRingingCall();
         Call fgCall = cm.getActiveFgCall();
         Call bgCall = cm.getFirstActiveBgCall();
+        List<Phone> phones = cm.getAllPhones();
+        for(Phone m_phone :phones){
+           if((mApplication.mGsmCallShow && m_phone.getPhoneType() == Phone.PHONE_TYPE_GSM)
+		   	   || (mApplication.mCdmaCallShow && m_phone.getPhoneType() == Phone.PHONE_TYPE_CDMA)){
+              fgCall = m_phone.getForegroundCall();
+			  bgCall = m_phone.getBackgroundCall();
+			  ringingCall = m_phone.getRingingCall();
+			  if (m_phone.getState() == Phone.State.RINGING) {
+                 state = Phone.State.RINGING;
+              } else if (m_phone.getState() == Phone.State.OFFHOOK) {
+                 state = Phone.State.OFFHOOK;
+              }
+		   }
+		}
 
         // Update the overall layout of the onscreen elements.
         updateCallInfoLayout(state);
