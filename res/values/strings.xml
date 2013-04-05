@@ -1629,4 +1629,7 @@
     <string name="exportAllcontatsSuccess">Succesfully exported all contacts to SIM </string>
     <string name="exportAllcontatsFailed"> Failed to export all contacts to SIM !!!</string>
     <string name="cursorError"> Cursor is not having proper data !!! </string>
+
+<string name="vm_voicemail_title">VoiceMail</string>
+<string name="count_down_timer">Second:</string>
 </resources>

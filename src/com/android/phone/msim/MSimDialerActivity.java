@@ -62,6 +62,9 @@ import android.provider.Settings;
 import android.provider.Settings.SettingNotFoundException;
 import android.telephony.ServiceState;
 
+import android.os.Message;
+import android.os.CountDownTimer;
+import android.os.Message;
 import static com.android.internal.telephony.MSimConstants.SUBSCRIPTION_KEY;
 
 public class MSimDialerActivity extends Activity {
@@ -75,22 +78,49 @@ public class MSimDialerActivity extends Activity {
     private TextView mTextNumber;
     private Intent mIntent;
     private int mPhoneCount = 0;
-
+    private String mVoiceMail;
+    private CountDownTimer mCountDownTimer;
+    private TextView mCountDownTimerText;
+    private int mTimer;
     public static final String PHONE_SUBSCRIPTION = "Subscription";
     public static final int INVALID_SUB = 99;
+    private static final int INDEX_MULTI_SIM_DIALOG = 1;
 
+    private static final long INTERVAL_COUNTDOWN = 500;
+    private static final int WHAT_UPDATE_LEFT_TIME = 0;
+    private long currentLeftTime;
+    private boolean isStarted = false;
+ 
+    private View multiDialerlayout;
+
+    private Handler updateHanler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case WHAT_UPDATE_LEFT_TIME:
+                    currentLeftTime -= INTERVAL_COUNTDOWN;
+                    Log.d(TAG, "update handler left time :" + currentLeftTime);
+                    if (currentLeftTime <= 0) {
+                        startOutgoingCall(getVoiceSubscription());
+                    } else
+                        sendEmptyMessageDelayed(WHAT_UPDATE_LEFT_TIME, INTERVAL_COUNTDOWN);
+                    break;
+            }
+        }
+    };
     @Override
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
-
+	currentLeftTime = -1;
         mContext = getApplicationContext();
         mCallNumber = getResources().getString(R.string.call_number);
+	mVoiceMail = getResources().getString(R.string.vm_voicemail_title);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-
+	stopUpdateLeftTime();
         mPhoneCount = MSimTelephonyManager.getDefault().getPhoneCount();
         mIntent = getIntent();
         if (DBG) Log.v(TAG, "Intent = " + mIntent);
@@ -113,6 +143,7 @@ public class MSimDialerActivity extends Activity {
                  break;
              }
         }
+	/*   mTimer = getCountdownTimer();
         if (phoneInCall) {
             if (DBG) Log.v(TAG, "subs [" + phone.getSubscription() + "] is in call");
             // use the sub which is already in call
@@ -120,18 +151,31 @@ public class MSimDialerActivity extends Activity {
         } else {
             if (DBG) Log.v(TAG, "launch dsdsdialer");
             // if none in use, launch the MultiSimDialer
+            if(mTimer == 0){
+                startOutgoingCall(getVoiceSubscription());
+            }else{
             launchMSDialer();
         }
+        }*/
+       //Set timer for slot select .
+	 mTimer = getCountdownTimer(); 
+     if(mTimer != 0)
+        {
+            launchMSDialer();
+        }
+     else
+        {
+            startOutgoingCall(getVoiceSubscription());
+        }
+
         Log.d(TAG, "end of onResume()");
     }
 
     protected void onPause() {
         super.onPause();
-        if(DBG) Log.v(TAG, "onPause : " + mIntent);
-        if (mAlertDialog != null) {
-            mAlertDialog.dismiss();
-            mAlertDialog = null;
-        }
+        closeMultiSimDialer();
+        if (!isStarted)
+            startUpdateLeftTime();
     }
 
    private int getSubscriptionForEmergencyCall(){
@@ -148,93 +192,7 @@ public class MSimDialerActivity extends Activity {
             return;
         }
 
-        LayoutInflater inflater = (LayoutInflater) mContext.
-                getSystemService(LAYOUT_INFLATER_SERVICE);
-        View layout = inflater.inflate(R.layout.dialer_ms,
-                (ViewGroup) findViewById(R.id.layout_root));
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(MSimDialerActivity.this);
-        builder.setView(layout);
-        builder.setOnKeyListener(new DialogInterface.OnKeyListener() {
-            public boolean onKey(DialogInterface dialog, int keyCode, KeyEvent event) {
-                Log.d(TAG, "key code is :" + keyCode);
-                switch (keyCode) {
-                case KeyEvent.KEYCODE_BACK: {
-                    mAlertDialog.dismiss();
-                    startOutgoingCall(INVALID_SUB);
-                    return true;
-                    }
-                case KeyEvent.KEYCODE_CALL: {
-                    Log.d(TAG, "event is" + event.getAction());
-                    if (event.getAction() == KeyEvent.ACTION_UP) {
-                        return true;
-                    } else {
-                        mAlertDialog.dismiss();
-                        startOutgoingCall(MSimPhoneFactory.getVoiceSubscription());
-                        return true;
-                    }
-                    }
-                case KeyEvent.KEYCODE_SEARCH:
-                    return true;
-                default:
-                    return false;
-                }
-            }
-        });
-
-        mAlertDialog = builder.create();
-
-        mTextNumber = (TextView)layout.findViewById(R.id.CallNumber);
-
-        String vm = "";
-        if (mIntent.getData() != null)
-            vm =  mIntent.getData().getScheme();
-
-        if ((vm != null) && (vm.equals("voicemail"))) {
-            mTextNumber.setText(mCallNumber + "VoiceMail" );
-            Log.d(TAG, "its voicemail!!!");
-        } else {
-            mTextNumber.setText(mCallNumber + mNumber);
-        }
-
-        Button callCancel = (Button)layout.findViewById(R.id.callcancel);
-        callCancel.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                mAlertDialog.dismiss();
-                startOutgoingCall(INVALID_SUB);
-            }
-        });
-
-        Button[] callButton = new Button[mPhoneCount];
-        int[] callMark = {R.id.callmark1, R.id.callmark2};
-        int[] subString = {R.string.sub_1, R.string.sub_2};
-        int index = 0;
-        for (index = 0; index < mPhoneCount; index++) {
-            callButton[index] =  (Button) layout.findViewById(callMark[index]);
-            callButton[index].setText(subString[index]);
-            callButton[index].setOnClickListener(new View.OnClickListener() {
-                public void onClick(View v) {
-                    mAlertDialog.dismiss();
-                    switch (v.getId()) {
-                    case R.id.callmark1:
-                        startOutgoingCall(MSimConstants.SUB1);
-                        break;
-                    case R.id.callmark2:
-                        startOutgoingCall(MSimConstants.SUB2);
-                        break;
-                    }
-                }
-            });
-        }
-
-
-        if (MSimConstants.SUB1 == MSimPhoneFactory.getVoiceSubscription()) {
-            callButton[MSimConstants.SUB1].setBackgroundResource(R.drawable.highlight_btn_call);
-        } else {
-            callButton[MSimConstants.SUB2].setBackgroundResource(R.drawable.highlight_btn_call);
-        }
-
-        mAlertDialog.show();
+	showDialog(INDEX_MULTI_SIM_DIALOG);
     }
 
     boolean isInCall(Phone phone) {
@@ -248,10 +206,12 @@ public class MSimDialerActivity extends Activity {
     }
 
     private void startOutgoingCall(int subscription) {
+        isStarted = true;
+        closeMultiSimDialer();
          mIntent.putExtra(SUBSCRIPTION_KEY, subscription);
          mIntent.setClass(MSimDialerActivity.this, OutgoingCallBroadcaster.class);
-         if (DBG) Log.v(TAG, "startOutgoingCall for sub " +subscription
-                 + " from intent: "+ mIntent);
+        if (DBG)
+            Log.v(TAG, "startOutgoingCall for sub " + subscription + " from intent: " + mIntent);
          if (subscription < mPhoneCount) {
              setResult(RESULT_OK, mIntent);
          } else {
@@ -259,5 +219,198 @@ public class MSimDialerActivity extends Activity {
              Log.d(TAG, "call cancelled");
          }
          finish();
+    }
+
+    /* add function */
+    private boolean isCallbackPriorityEnabled() {
+        int enabled;
+        try {
+            enabled = Settings.System.getInt(getContentResolver(),
+                Settings.System.CALLBACK_PRIORITY_ENABLED);
+        } catch (SettingNotFoundException snfe) {
+            enabled = 1;
+        }
+        return (enabled == 1);
+    }
+
+    private int getVoiceSubscription() {
+        int voiceSub = MSimPhoneFactory.getVoiceSubscription();
+
+        if (isCallbackPriorityEnabled()) {
+            voiceSub = mIntent.getIntExtra(SUBSCRIPTION_KEY, voiceSub);
+            Log.i(TAG, "Preferred callback enabled");
+            if (DBG) Log.v(TAG, "getVoiceSubscription return:" + mIntent.getExtra(SUBSCRIPTION_KEY));
+        }
+        return voiceSub;
+    }
+
+    private void stopUpdateLeftTime(){
+        updateHanler.removeMessages(WHAT_UPDATE_LEFT_TIME);
+    }
+
+    private void startUpdateLeftTime(){
+        if (currentLeftTime > 0 && !updateHanler.hasMessages(WHAT_UPDATE_LEFT_TIME))
+            updateHanler.sendEmptyMessageDelayed(WHAT_UPDATE_LEFT_TIME, INTERVAL_COUNTDOWN);
+    }
+
+    private boolean isAddTimer() {
+        if (mTimer == -1) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    protected void closeMultiSimDialer() {
+        stopUpdateLeftTime();
+        if (mCountDownTimer != null) {
+            mCountDownTimer.cancel();
+            mCountDownTimer = null;
+        }
+        if (mAlertDialog != null && mAlertDialog.isShowing()) {
+            mAlertDialog.dismiss();
+            mAlertDialog = null;
+        }
+    }
+
+    private int getCountdownTimer() {
+        int timer = -1;
+        try {
+            timer = Settings.System.getInt(getContentResolver(),
+                Settings.System.MULTI_SIM_COUNTDOWN);
+        } catch (SettingNotFoundException snfe) {
+            Log.d(TAG, Settings.System.MULTI_SIM_COUNTDOWN + " setting does not exist");
+        }
+        return timer;
+    }
+
+   private String getMultiSimName(int subscription) {
+       return Settings.System.getString(mContext.getContentResolver(),
+               Settings.System.MULTI_SIM_NAME[subscription]);
+   }
+
+    @Override
+    protected void onPrepareDialog(int id, Dialog dialog) {
+        switch (id) {
+            case INDEX_MULTI_SIM_DIALOG:
+                mTextNumber = (TextView) multiDialerlayout.findViewById(R.id.CallNumber);
+
+                String vm = "";
+                if ((mIntent != null) && (mIntent.getData() != null))
+                    vm = mIntent.getData().getScheme();
+
+                if ((vm != null) && (vm.equals("voicemail"))) {
+                    mTextNumber.setText(mCallNumber + mVoiceMail);
+                    Log.d(TAG, "its voicemail!!!");
+                } else {
+                    mTextNumber.setText(mCallNumber + mNumber);
+                }
+
+                Button callCancel = (Button) multiDialerlayout.findViewById(R.id.callcancel);
+                callCancel.setOnClickListener(new View.OnClickListener() {
+                    public void onClick(View v) {
+                        startOutgoingCall(INVALID_SUB);
+                    }
+                });
+
+                Button[] callButton = new Button[mPhoneCount];
+                int[] callMark = {
+                        R.id.callmark1, R.id.callmark2
+                };
+                // int[] subString = {R.string.sub_1, R.string.sub_2};
+                int index = 0;
+                for (index = 0; index < mPhoneCount; index++) {
+                    callButton[index] = (Button) multiDialerlayout.findViewById(callMark[index]);
+                    //callButton[index].setText(getMultiSimName(index));
+                    callButton[index].setText("card" + index);
+                    Log.d(TAG, "sub" + index +": " + getMultiSimName(index));
+                    callButton[index].setOnClickListener(new View.OnClickListener() {
+                        public void onClick(View v) {
+                            switch (v.getId()) {
+                                case R.id.callmark1:
+                                    startOutgoingCall(MSimConstants.SUB1);
+                                    break;
+                                case R.id.callmark2:
+                                    startOutgoingCall(MSimConstants.SUB2);
+                                    break;
+                            }
+                        }
+                    });
+                }
+
+                mCountDownTimerText = (TextView) multiDialerlayout
+                        .findViewById(R.id.CountDownTimer);
+                if (isAddTimer()) {
+                    mCountDownTimer = new CountDownTimer(currentLeftTime > -1 ? currentLeftTime
+                            : mTimer * 1000, 500) {
+                        public void onTick(long millisUntilFinished) {
+                            currentLeftTime = millisUntilFinished;
+                            Log.d(TAG, "count down left time :" + currentLeftTime);
+                            if (1 == (millisUntilFinished / 500) % 2) {
+                                mCountDownTimerText.setText(getResources().getString(
+                                        R.string.count_down_timer)
+                                        + (millisUntilFinished / 1000 + 1));
+                            }
+                        }
+
+                        public void onFinish() {
+                            startOutgoingCall(getVoiceSubscription());
+                        }
+                    };
+                    mCountDownTimer.start();
+                } else {
+                    mCountDownTimerText.setVisibility(View.GONE);
+                    mCountDownTimer = null;
+                }
+
+                if (MSimConstants.SUB1 == getVoiceSubscription()) {
+                    callButton[MSimConstants.SUB1]
+                            .setBackgroundResource(R.drawable.highlight_btn_call);
+                } else {
+                    callButton[MSimConstants.SUB2]
+                            .setBackgroundResource(R.drawable.highlight_btn_call);
+                }
+                break;
+        }
+    }
+
+    @Override
+    protected Dialog onCreateDialog(int id) {
+        switch (id) {
+            case INDEX_MULTI_SIM_DIALOG:
+                LayoutInflater inflater = (LayoutInflater) mContext.
+                        getSystemService(LAYOUT_INFLATER_SERVICE);
+                multiDialerlayout = inflater.inflate(R.layout.dialer_ms,
+                        (ViewGroup) findViewById(R.id.layout_root));
+
+                AlertDialog.Builder builder = new AlertDialog.Builder(MSimDialerActivity.this);
+                builder.setView(multiDialerlayout).setCancelable(false);
+                builder.setOnKeyListener(new DialogInterface.OnKeyListener() {
+                    public boolean onKey(DialogInterface dialog, int keyCode, KeyEvent event) {
+                        Log.d(TAG, "key code is :" + keyCode);
+                        switch (keyCode) {
+                            case KeyEvent.KEYCODE_BACK: {
+                                startOutgoingCall(INVALID_SUB);
+                                return true;
+                            }
+                            case KeyEvent.KEYCODE_CALL: {
+                                Log.d(TAG, "event is" + event.getAction());
+                                if (event.getAction() == KeyEvent.ACTION_UP) {
+                                    return true;
+                                } else {
+                                    startOutgoingCall(getVoiceSubscription());
+                                    return true;
+                                }
+                            }
+                            case KeyEvent.KEYCODE_SEARCH:
+                                return true;
+                            default:
+                                return false;
+                        }
+                    }
+                });
+                return builder.create();
+        }
+        return null;
     }
 }
