@@ -24,6 +24,7 @@ import android.net.Uri;
 import android.provider.Telephony.Intents;
 import com.android.internal.telephony.Phone;
 import android.telephony.PhoneNumberUtils;
+import android.telephony.MSimTelephonyManager;
 import android.util.Log;
 import android.view.WindowManager;
 
@@ -174,8 +175,13 @@ public class SpecialCharSequenceMgr {
                 int index = Integer.parseInt(input.substring(0, len-1));
                 Intent intent = new Intent(Intent.ACTION_PICK);
 
-                intent.setClassName("com.android.phone",
-                                    "com.android.phone.SimContacts");
+                if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+                    intent.setClassName("com.android.phone",
+                                        "com.android.phone.MSimContacts");
+                } else {
+                    intent.setClassName("com.android.phone",
+                                        "com.android.phone.SimContacts");
+                }
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 intent.putExtra("index", index);
                 PhoneApp.getInstance().startActivity(intent);

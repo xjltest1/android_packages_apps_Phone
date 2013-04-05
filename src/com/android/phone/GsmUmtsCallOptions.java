@@ -21,12 +21,23 @@ import android.preference.CheckBoxPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceScreen;
+import android.util.Log;
 
 import com.android.internal.telephony.Phone;
+
+import static com.android.internal.telephony.MSimConstants.SUBSCRIPTION_KEY;
 
 public class GsmUmtsCallOptions extends PreferenceActivity {
     private static final String LOG_TAG = "GsmUmtsCallOptions";
     private final boolean DBG = (PhoneApp.DBG_LEVEL >= 2);
+
+    private static final String BUTTON_CF_EXPAND_KEY = "button_cf_expand_key";
+    private static final String BUTTON_MORE_EXPAND_KEY = "button_more_expand_key";
+
+    private PreferenceScreen subscriptionPrefCFE;
+
+    private int mSubscription = 0;
+    private Phone mPhone;
 
     @Override
     protected void onCreate(Bundle icicle) {
@@ -34,7 +45,21 @@ public class GsmUmtsCallOptions extends PreferenceActivity {
 
         addPreferencesFromResource(R.xml.gsm_umts_call_options);
 
-        if (PhoneApp.getPhone().getPhoneType() != Phone.PHONE_TYPE_GSM) {
+        // getting selected subscription
+        mSubscription = getIntent().getIntExtra(SUBSCRIPTION_KEY,
+                PhoneApp.getInstance().getDefaultSubscription());
+        // setting selected subscription for GsmUmtsCallForwardOptions.java
+        subscriptionPrefCFE  = (PreferenceScreen) findPreference(BUTTON_CF_EXPAND_KEY);
+        subscriptionPrefCFE.getIntent().putExtra(SUBSCRIPTION_KEY, mSubscription);
+        // setting selected subscription for GsmUmtsAdditionalCallOptions.java
+        PreferenceScreen subscriptionPrefAdditionSettings =
+                (PreferenceScreen) findPreference(BUTTON_MORE_EXPAND_KEY);
+        subscriptionPrefAdditionSettings.getIntent().putExtra(SUBSCRIPTION_KEY, mSubscription);
+        Log.d(LOG_TAG, "Getting GsmUmtsCallOptions subscription =" + mSubscription);
+        mPhone = PhoneApp.getInstance().getPhone(mSubscription);
+
+        if (mPhone.getPhoneType() != Phone.PHONE_TYPE_GSM) {
+            Log.d(LOG_TAG, "Non GSM Phone!");
             //disable the entire screen
             getPreferenceScreen().setEnabled(false);
         }

@@ -18,6 +18,8 @@ package com.android.phone;
 
 import static android.view.Window.PROGRESS_VISIBILITY_OFF;
 import static android.view.Window.PROGRESS_VISIBILITY_ON;
+import static com.android.internal.telephony.MSimConstants.SUB1;
+import static com.android.internal.telephony.MSimConstants.SUB2;
 
 import android.app.ListActivity;
 import android.content.AsyncQueryHandler;
@@ -28,6 +30,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.telephony.MSimTelephonyManager;
 import android.util.Log;
 import android.view.Window;
 import android.widget.CursorAdapter;
@@ -68,6 +71,7 @@ public class ADNList extends ListActivity {
 
     private TextView mEmptyText;
 
+    private int mSubscription = 0;
     protected int mInitialSelection = -1;
 
     @Override
@@ -95,8 +99,21 @@ public class ADNList extends ListActivity {
 
     protected Uri resolveIntent() {
         Intent intent = getIntent();
-        if (intent.getData() == null) {
-            intent.setData(Uri.parse("content://icc/adn"));
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            mSubscription = MSimTelephonyManager.getDefault().getPreferredVoiceSubscription();
+            if (intent.getData() == null) {
+                if (mSubscription == SUB1) {
+                    intent.setData(Uri.parse("content://iccmsim/adn"));
+                } else if (mSubscription == SUB2) {
+                    intent.setData(Uri.parse("content://iccmsim/adn_sub2"));
+                } else {
+                    if (DBG) log("resolveIntent: invalid subscription");
+                }
+            }
+        } else {
+            if (intent.getData() == null) {
+                intent.setData(Uri.parse("content://icc/adn"));
+            }
         }
 
         return intent.getData();

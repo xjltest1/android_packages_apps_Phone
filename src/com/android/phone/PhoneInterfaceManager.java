@@ -95,7 +95,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      * note that request.result must be set to something non-null for the calling thread to
      * unblock.
      */
-    private final class MainThreadHandler extends Handler {
+    protected class MainThreadHandler extends Handler {
         @Override
         public void handleMessage(Message msg) {
             MainThreadRequest request;
@@ -259,7 +259,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         if (state != Phone.State.OFFHOOK && state != Phone.State.RINGING) {
             Intent  intent = new Intent(Intent.ACTION_DIAL, Uri.parse(url));
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            mApp.startActivity(intent);
+            mApp.mContext.startActivity(intent);
         }
     }
 
@@ -278,7 +278,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
         Intent intent = new Intent(Intent.ACTION_CALL, Uri.parse(url));
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        mApp.startActivity(intent);
+        mApp.mContext.startActivity(intent);
     }
 
     public void toggleLTE(boolean on) {
@@ -321,7 +321,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 intent = PhoneApp.createInCallIntent();
             }
             try {
-                mApp.startActivity(intent);
+                mApp.mContext.startActivity(intent);
             } catch (ActivityNotFoundException e) {
                 // It's possible that the in-call UI might not exist
                 // (like on non-voice-capable devices), although we
@@ -568,7 +568,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     public boolean enableDataConnectivity() {
         enforceModifyPermission();
         ConnectivityManager cm =
-                (ConnectivityManager)mApp.getSystemService(Context.CONNECTIVITY_SERVICE);
+                (ConnectivityManager)mApp.mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
         cm.setMobileDataEnabled(true);
         return true;
     }
@@ -586,7 +586,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     public boolean disableDataConnectivity() {
         enforceModifyPermission();
         ConnectivityManager cm =
-                (ConnectivityManager)mApp.getSystemService(Context.CONNECTIVITY_SERVICE);
+                (ConnectivityManager)mApp.mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
         cm.setMobileDataEnabled(false);
         return true;
     }
@@ -619,13 +619,13 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
     public Bundle getCellLocation() {
         try {
-            mApp.enforceCallingOrSelfPermission(
+            mApp.mContext.enforceCallingOrSelfPermission(
                 android.Manifest.permission.ACCESS_FINE_LOCATION, null);
         } catch (SecurityException e) {
             // If we have ACCESS_FINE_LOCATION permission, skip the check for ACCESS_COARSE_LOCATION
             // A failure should throw the SecurityException from ACCESS_COARSE_LOCATION since this
             // is the weaker precondition
-            mApp.enforceCallingOrSelfPermission(
+            mApp.mContext.enforceCallingOrSelfPermission(
                 android.Manifest.permission.ACCESS_COARSE_LOCATION, null);
         }
         Bundle data = new Bundle();
@@ -634,13 +634,13 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     public void enableLocationUpdates() {
-        mApp.enforceCallingOrSelfPermission(
+        mApp.mContext.enforceCallingOrSelfPermission(
                 android.Manifest.permission.CONTROL_LOCATION_UPDATES, null);
         mPhone.enableLocationUpdates();
     }
 
     public void disableLocationUpdates() {
-        mApp.enforceCallingOrSelfPermission(
+        mApp.mContext.enforceCallingOrSelfPermission(
                 android.Manifest.permission.CONTROL_LOCATION_UPDATES, null);
         mPhone.disableLocationUpdates();
     }
@@ -648,14 +648,14 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     @SuppressWarnings("unchecked")
     public List<NeighboringCellInfo> getNeighboringCellInfo() {
         try {
-            mApp.enforceCallingOrSelfPermission(
+            mApp.mContext.enforceCallingOrSelfPermission(
                     android.Manifest.permission.ACCESS_FINE_LOCATION, null);
         } catch (SecurityException e) {
             // If we have ACCESS_FINE_LOCATION permission, skip the check
             // for ACCESS_COARSE_LOCATION
             // A failure should throw the SecurityException from
             // ACCESS_COARSE_LOCATION since this is the weaker precondition
-            mApp.enforceCallingOrSelfPermission(
+            mApp.mContext.enforceCallingOrSelfPermission(
                     android.Manifest.permission.ACCESS_COARSE_LOCATION, null);
         }
 
@@ -707,7 +707,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      * @throws SecurityException if the caller does not have the required permission
      */
     private void enforceModifyPermission() {
-        mApp.enforceCallingOrSelfPermission(android.Manifest.permission.MODIFY_PHONE_STATE, null);
+        mApp.mContext.enforceCallingOrSelfPermission(
+                android.Manifest.permission.MODIFY_PHONE_STATE, null);
     }
 
     /**
@@ -716,7 +717,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      * @throws SecurityException if the caller does not have the required permission
      */
     private void enforceCallPermission() {
-        mApp.enforceCallingOrSelfPermission(android.Manifest.permission.CALL_PHONE, null);
+        mApp.mContext.enforceCallingOrSelfPermission(android.Manifest.permission.CALL_PHONE, null);
     }
 
 
@@ -803,5 +804,15 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
     public int getLteOnGsmMode() {
         return mPhone.getLteOnGsmMode();
+    }
+
+    public void setPhone(Phone phone) {
+        if (mPhone != null) {
+            Log.d(LOG_TAG, "un=register for UNSOL OEM HOOK");
+            mPhone.unSetOnUnsolOemHookExtApp(mMainThreadHandler);
+        }
+        mPhone = phone;
+        Log.d(LOG_TAG, " Registering for UNSOL OEM HOOK Responses to deliver external apps");
+        mPhone.setOnUnsolOemHookExtApp(mMainThreadHandler, EVENT_UNSOL_OEM_HOOK_EXT_APP, null);
     }
 }

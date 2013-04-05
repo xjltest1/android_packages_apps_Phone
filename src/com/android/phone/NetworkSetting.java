@@ -44,6 +44,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 
+import static com.android.internal.telephony.MSimConstants.SUBSCRIPTION_KEY;
+
 /**
  * "Networks" settings UI for the Phone app.
  */
@@ -220,7 +222,12 @@ public class NetworkSetting extends PreferenceActivity
 
         addPreferencesFromResource(R.xml.carrier_select);
 
-        mPhone = PhoneApp.getPhone();
+        int subscription = getIntent().getIntExtra(SUBSCRIPTION_KEY,
+                PhoneApp.getInstance().getDefaultSubscription());
+        log("onCreate subscription :" + subscription);
+        mPhone = PhoneApp.getPhone(subscription);
+        Intent intent = new Intent(this, NetworkQueryService.class);
+        intent.putExtra(SUBSCRIPTION_KEY, subscription);
 
         mNetworkList = (PreferenceGroup) getPreferenceScreen().findPreference(LIST_NETWORKS_KEY);
         mNetworkMap = new HashMap<Preference, OperatorInfo>();
@@ -233,7 +240,7 @@ public class NetworkSetting extends PreferenceActivity
         // long as startService is called) until a stopservice request is made.  Since
         // we want this service to just stay in the background until it is killed, we
         // don't bother stopping it from our end.
-        startService (new Intent(this, NetworkQueryService.class));
+        startService (intent);
         bindService (new Intent(this, NetworkQueryService.class), mNetworkQueryServiceConnection,
                 Context.BIND_AUTO_CREATE);
     }
