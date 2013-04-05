@@ -284,7 +284,8 @@ public class CallCard extends LinearLayout
                 && !fgCall.getState().isDialing()) {
             // A phone call is ringing, call waiting *or* being rejected
             // (ie. another call may also be active as well.)
-            updateRingingCall(cm);
+            /* modify by LiXinwei for dsda 20121127  */
+            updateRingingCall(cm,ringingCall);
         } else if ((fgCall.getState() != Call.State.IDLE)
                 || (bgCall.getState() != Call.State.IDLE)) {
             // We are here because either:
@@ -295,7 +296,8 @@ public class CallCard extends LinearLayout
             // the DISCONNECTING or DISCONNECTED state. In this case, we want
             // the main CallCard to display "Hanging up" or "Call ended".
             // The normal "foreground call" code path handles both cases.
-            updateForegroundCall(cm);
+            /* modify by LiXinwei for dsda 20121127  */
+            updateForegroundCall(cm,fgCall,bgCall);
         } else {
             // We don't have any DISCONNECTED calls, which means that the phone
             // is *truly* idle.
@@ -353,12 +355,14 @@ public class CallCard extends LinearLayout
     /**
      * Updates the UI for the state where the phone is in use, but not ringing.
      */
-    private void updateForegroundCall(CallManager cm) {
+     /* modify by LiXinwei for dsda 20121127  begin */
+    private void updateForegroundCall(CallManager cm,Call fgcall,Call bgcall) {
         if (DBG) log("updateForegroundCall()...");
         // if (DBG) PhoneUtils.dumpCallManager();
 
-        Call fgCall = cm.getActiveFgCall();
-        Call bgCall = cm.getFirstActiveBgCall();
+        Call fgCall = fgcall;
+        Call bgCall = bgcall;
+		/* modify by LiXinwei for dsda 20121127  end */
 
         if (fgCall.getState() == Call.State.IDLE) {
             if (DBG) log("updateForegroundCall: no active call, show holding call");
@@ -399,10 +403,12 @@ public class CallCard extends LinearLayout
      * Updates the UI for the state where an incoming call is ringing (or
      * call waiting), regardless of whether the phone's already offhook.
      */
-    private void updateRingingCall(CallManager cm) {
+     /* modify by LiXinwei for dsda 20121127  begin */
+    private void updateRingingCall(CallManager cm, Call call) {
         if (DBG) log("updateRingingCall()...");
 
-        Call ringingCall = cm.getFirstActiveRingingCall();
+        Call ringingCall = call;
+		/* modify by LiXinwei for dsda 20121127   end */
 
         // Display caller-id info and photo from the incoming call:
         displayMainCallStatus(cm, ringingCall);
