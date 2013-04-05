@@ -405,7 +405,7 @@ public class OutgoingCallBroadcaster extends Activity
             return;
         }
 
-        boolean promptEnabled = MSimPhoneFactory.isPromptEnabled();
+        boolean promptEnabled = true; // MSimPhoneFactory.isPromptEnabled();
         String number = PhoneNumberUtils.getNumberFromIntent(intent, this);
         if (MSimTelephonyManager.getDefault().isMultiSimEnabled() && promptEnabled &&
                (activeSubCount() > 1) && (!isIntentFromBluetooth(intent)) &&
