@@ -367,6 +367,22 @@ public class PhoneUtils {
         Call fg = cm.getActiveFgCall();
         Call bg = cm.getFirstActiveBgCall();
 
+        /* add by YELLOWSTONE_LiXinwei for dsda 20121130 begin */
+        List<Phone> phones = cm.getAllPhones();
+
+        for(Phone m_phone : phones){
+           if(PhoneApp.getInstance().mSIM2CallShow && m_phone.getSubscription() == Phone.SIM2_SUB){
+              fg = m_phone.getForegroundCall();
+			  bg = m_phone.getBackgroundCall();
+			  ringing = m_phone.getRingingCall();
+		   }else if(PhoneApp.getInstance().mSIM1CallShow && m_phone.getSubscription() == Phone.SIM1_SUB){
+              fg = m_phone.getForegroundCall();
+			  bg = m_phone.getBackgroundCall();	
+			  ringing = m_phone.getRingingCall();
+		   }
+		}		
+        /* add by YELLOWSTONE_LiXinwei for dsda 20121130 end */
+
         if (!ringing.isIdle()) {
             log("hangup(): hanging up ringing call");
             hungup = hangupRingingCall(ringing);
@@ -529,6 +545,92 @@ public class PhoneUtils {
     static boolean hangup(Call call) {
         try {
             CallManager cm = PhoneApp.getInstance().mCM;
+
+        /* add by YELLOWSTONE_LiXinwei for dsda 20121130 begin */
+        // NEED TODO HERE!
+			PhoneApp app = PhoneApp.getInstance();
+			boolean hasSim2Active = false;
+			boolean hasSim2Hold = false;
+			boolean hasSim2Ring = false;
+			boolean hasSim1Active = false;
+			boolean hasSim1Hold = false;
+			boolean hasSim1Ring = false;
+			Call fgSim2Call = null;
+			Call bgSim2Call = null;
+			Call ringSim2Call = null;
+			Call fgSim1Call = null;
+			Call bgSim1Call = null;
+			Call ringSim1Call = null;
+
+	        List<Phone> phones = cm.getAllPhones();
+			int phoneType = call.getPhone().getPhoneType();
+			int phoneSimcard = call.getPhone().getSubscription();
+
+	        for(Phone m_phone :phones) {
+			   	if(m_phone.getSubscription() == Phone.SIM2_SUB) {
+				   	fgSim2Call = m_phone.getForegroundCall();
+					bgSim2Call = m_phone.getBackgroundCall();
+					ringSim2Call = m_phone.getRingingCall();
+			        hasSim2Active = !(fgSim2Call.isIdle());
+					hasSim2Hold = !(bgSim2Call.isIdle());
+					hasSim2Ring = !(ringSim2Call.isIdle());
+			   	} else {
+				   	fgSim1Call = m_phone.getForegroundCall();
+					bgSim1Call = m_phone.getBackgroundCall();
+					ringSim1Call = m_phone.getRingingCall();
+			        hasSim1Active = !(fgSim1Call.isIdle());
+					hasSim1Hold = !(bgSim1Call.isIdle());
+					hasSim1Ring = !(ringSim1Call.isIdle());
+		   		}
+			}
+            //ringing call
+			if (call.isRinging()) {
+				if ((hasSim2Active | hasSim2Hold) && hasSim1Active) {
+					String inAudioCall = SystemProperties.get("gsm.dsda.audio.type", "IDLE_INCALL");
+					if (inAudioCall.equals("GSM_INCALL")) {
+						app.mSIM2CallShow = true;
+						app.mSIM1CallShow = false;
+					} else {
+						app.mSIM2CallShow = false;
+						app.mSIM1CallShow = true;
+					}
+				}
+				call.hangup();			
+				return true;
+			}
+            //hold/active call
+	  		if ((hasSim2Active | hasSim2Hold) && hasSim1Active) {
+				call.hangup();
+				if (hasSim2Active && hasSim2Hold) {
+					//when answer the third GSM ring call and hangup active call, do not need to switchHoldingandActive
+					if (phoneSimcard == Phone.SIM2_SUB && !hasSim2Ring) {
+						if (app.mSIM2CallFakeActive == false) {
+							call.getPhone().switchHoldingAndActive();
+						}
+					} else if (phoneSimcard == Phone.SIM1_SUB) {
+						app.mSIM2CallFakeActive = false;
+						app.mSIM1CallFakeActive = false;
+					}
+				} else if (hasSim2Active && !hasSim2Hold) {
+					/*if (phoneType == Phone.PHONE_TYPE_GSM) {
+						if (app.cdmaPhoneCallState.getCurrentCallState()==
+	                         CdmaPhoneCallState.PhoneCallState.SINGLE_ACTIVE) {
+							fgCdmaCall.getPhone().switchHoldingAndActive();
+	                    }
+					} */
+					app.mSIM2CallFakeActive = false;
+					app.mSIM1CallFakeActive = false;
+				} else if (!hasSim2Active && hasSim2Hold) {
+					if (phoneSimcard == Phone.SIM1_SUB) {
+						fgSim2Call.getPhone().switchHoldingAndActive();
+					}
+					app.mSIM2CallFakeActive = false;
+					app.mSIM1CallFakeActive = false;
+				}
+				setAudioMode(cm);
+			    return true;
+	  		}
+            /* add by YELLOWSTONE_LiXinwei for dsda 20121130 end */
 
             if (call.getState() == Call.State.ACTIVE && cm.hasActiveBgCall()) {
                 // handle foreground call hangup while there is background call
@@ -706,7 +808,24 @@ public class PhoneUtils {
         final boolean initiallyIdle = app.mCM.getState() == Phone.State.IDLE;
 
         try {
-            connection = app.mCM.dial(phone, numberToDial);
+
+        /* add by YELLOWSTONE_LiXinwei for dsda 20121130 begin */
+            CallDetails callDetails = new CallDetails();
+            callDetails.call_type = callType;
+			//set for dial tab display
+			if (phone.getSubscription() == Phone.SIM1_SUB) {
+                  app.mSIM2CallShow = false;
+				  app.mSIM1CallShow = true;
+			} else {
+                  app.mSIM2CallShow = true;
+				  app.mSIM1CallShow = false;
+			}
+			//set for fake active call
+            setFakeActiveForDial(phone, app); 
+            //connection = app.mCM.dial(phone, numberToDial, callDetails);
+            connection = app.mCM.dial(phone, numberToDial, callType, null);
+        /* add by YELLOWSTONE_LiXinwei for dsda 20121130 end */
+
         } catch (CallStateException ex) {
             // CallStateException means a new outgoing call is not currently
             // possible: either no more call slots exist, or there's another
@@ -812,6 +931,56 @@ public class PhoneUtils {
         return status;
     }
 
+    /* add by YELLOWSTONE_LiXinwei for dsda 20121130 start */
+    /**
+     * set for fake active call when dial
+     * 
+     * 
+     */
+    static void setFakeActiveForDial(Phone dialPhone, PhoneApp app) {
+       	CallManager cm = PhoneApp.getInstance().mCM;
+       	int phoneType = dialPhone.getPhoneType();
+		int phoneSimcard = dialPhone.getSubscription();
+		boolean hasSim2Active = false;
+		boolean hasSim2Hold = false;		
+		Call fgSim2Call = null;
+		Call bgSim2Call = null;
+		boolean hasSim1Active = false;
+		boolean hasSim1Hold = false;		
+		Call fgSim1Call = null;
+		Call bgSim1Call = null;
+		List<Phone> phones = cm .getAllPhones();
+		
+		for(Phone m_phone :phones){
+		    if(m_phone.getSubscription() == Phone.SIM2_SUB){
+				    fgSim2Call = m_phone.getForegroundCall();
+						bgSim2Call = m_phone.getBackgroundCall();
+			      hasSim2Active = !(fgSim2Call.isIdle());
+						hasSim2Hold = !(bgSim2Call.isIdle());
+		    }
+			if(m_phone.getSubscription() == Phone.SIM1_SUB){
+				    fgSim1Call = m_phone.getForegroundCall();
+						bgSim1Call = m_phone.getBackgroundCall();
+			      hasSim1Active = !(fgSim1Call.isIdle());
+						hasSim1Hold = !(bgSim1Call.isIdle());
+		    }
+		}
+		
+		if (phoneSimcard==Phone.SIM2_SUB) {
+			if (hasSim1Active && hasSim1Hold) {
+		    	app.mSIM1CallFakeActive = true;
+			}
+		    app.mSIM2CallFakeActive = false;
+		} else if (phoneSimcard==Phone.SIM1_SUB ){
+		    if (hasSim2Active && hasSim2Hold) {
+		    	app.mSIM2CallFakeActive = true;
+		    }
+		    app.mSIM1CallFakeActive = false;
+		} 
+     
+    }
+    /* add by YELLOWSTONE_LiXinwei for dsda 20121130 end */
+
     private static String toLogSafePhoneNumber(String number) {
         if (VDBG) {
             // When VDBG is true we emit PII.
@@ -873,7 +1042,7 @@ public class PhoneUtils {
      * foreground call.
      */
     static Boolean restoreMuteState() {
-        Phone phone = PhoneApp.getInstance().mCM.getFgPhone();
+        Phone phone = PhoneApp.getInstance().mCM.getRealFgPhone();
 
         //get the earliest connection
         Connection c = phone.getForegroundCall().getEarliestConnection();
@@ -914,7 +1083,8 @@ public class PhoneUtils {
     }
 
     static void mergeCalls(CallManager cm) {
-        int phoneType = cm.getFgPhone().getPhoneType();
+        //int phoneType = cm.getFgPhone().getPhoneType();
+	int phoneType = cm.getRealFgPhone().getPhoneType();
         if (phoneType == Phone.PHONE_TYPE_CDMA) {
             log("mergeCalls(): CDMA...");
             PhoneApp app = PhoneApp.getInstance();
@@ -1907,7 +2077,7 @@ public class PhoneUtils {
 
         // if applicable, mute the call while we're showing the add call UI.
         if (cm.hasActiveFgCall()) {
-            setMuteInternal(cm.getActiveFgCall().getPhone(), true);
+            setMuteInternal(cm.getRealActiveFgCall().getPhone(), true);
             // Inform the phone app that this mute state was NOT done
             // voluntarily by the User.
             app.setRestoreMuteOnInCallResume(true);
@@ -2035,11 +2205,11 @@ public class PhoneUtils {
         CallManager cm = PhoneApp.getInstance().mCM;
 
         // make the call to mute the audio
-        setMuteInternal(cm.getFgPhone(), muted);
+        setMuteInternal(cm.getRealFgPhone(), muted);
 
         // update the foreground connections to match.  This includes
         // all the connections on conference calls.
-        for (Connection cn : cm.getActiveFgCall().getConnections()) {
+        for (Connection cn : cm.getRealActiveFgCall().getConnections()) {
             if (sConnectionMuteTable.get(cn) == null) {
                 if (DBG) log("problem retrieving mute value for this connection.");
             }
@@ -2053,10 +2223,14 @@ public class PhoneUtils {
     private static void setMuteInternal(Phone phone, boolean muted) {
         final PhoneApp app = PhoneApp.getInstance();
         if (phone != null) {
-            Context context = phone.getContext();
+        /* modify by YELLOWSTONE_LiXinwei for dsda 20121130 begin */
+        Context context = phone.getContext();
             boolean routeToAudioManager =
                 context.getResources().getBoolean(R.bool.send_mic_mute_to_AudioManager);
-            if (routeToAudioManager) {
+            //int phone_type = phone.getPhoneType();
+		int phone_simcard = phone.getSubscription();
+        log("set mute: phone simcard = " + phone_simcard);
+        if(phone_simcard == Phone.SIM1_SUB){
                 AudioManager audioManager =
                     (AudioManager) phone.getContext().getSystemService(Context.AUDIO_SERVICE);
                 if (DBG) log("setMuteInternal: using setMicrophoneMute(" + muted + ")...");
@@ -2075,10 +2249,20 @@ public class PhoneUtils {
      */
     static boolean getMute() {
         final PhoneApp app = PhoneApp.getInstance();
+        /* add by YELLOWSTONE_LiXinwei for dsda 20121130 begin */
+        CallManager cm = PhoneApp.getInstance().mCM;
+        //int phone_type = Phone.PHONE_TYPE_NONE;
+        int phone_simcard = -1;
+		//Modify for only gsm hold call
+		if (cm.hasActiveFgCall()) {
+			phone_simcard = cm.getRealFgPhone().getSubscription();
+		} else
+			return false;
 
         boolean routeToAudioManager =
             app.mContext.getResources().getBoolean(R.bool.send_mic_mute_to_AudioManager);
-        if (routeToAudioManager) {
+        if(phone_simcard == Phone.SIM1_SUB){
+		/* add by YELLOWSTONE_LiXinwei for dsda 20121130 end */
             AudioManager audioManager =
                 (AudioManager) app.mContext.getSystemService(Context.AUDIO_SERVICE);
             return audioManager.isMicrophoneMute();
